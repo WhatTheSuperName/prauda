@@ -1,7 +1,3 @@
-// ============================================
-// BLACK CHAT - ПОЛНАЯ ВЕРСИЯ
-// ВСЁ В ОДНОМ ФАЙЛЕ, БАГИ ИСПРАВЛЕНЫ
-// ============================================
 
 let users = JSON.parse(localStorage.getItem('users')) || [];
 let messages = JSON.parse(localStorage.getItem('messages')) || {
@@ -88,6 +84,9 @@ function init() {
     currentUser = null;
     showAuth();
     setupEventListeners();
+    
+    // Применяем размытие фона при загрузке
+    document.body.style.backdropFilter = 'blur(2px)';
 }
 
 function showAuth() {
@@ -394,6 +393,7 @@ function renderStarredList() {
         
         item.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             
             document.querySelectorAll('.channel, .private-channel, .starred-item, .group-channel, .friend-channel').forEach(el => {
                 el.classList.remove('active');
@@ -548,6 +548,7 @@ function renderFriendsList() {
         
         friendEl.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             openPrivateChat(friendName);
         });
         
@@ -786,6 +787,7 @@ function renderGroupsList() {
         
         groupEl.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             openGroupChat(group.id);
         });
         
@@ -810,6 +812,7 @@ function renderGroupsList() {
     
     createGroupBtn.addEventListener('click', function(e) {
         e.stopPropagation();
+        e.preventDefault();
         const name = prompt('group name:');
         if (name) createGroup(name);
     });
@@ -923,6 +926,7 @@ function renderPrivateChannels() {
         
         channelEl.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             
             document.querySelectorAll('.channel, .private-channel, .starred-item, .group-channel, .friend-channel').forEach(el => {
                 el.classList.remove('active');
@@ -999,9 +1003,13 @@ function addBackgroundButton() {
     
     const bgBtn = document.createElement('button');
     bgBtn.id = 'bg-btn';
-    bgBtn.textContent = '🖼️ BG';
+    bgBtn.textContent = 'BG';
     bgBtn.style.marginTop = '10px';
-    bgBtn.style.fontSize = '16px';
+    bgBtn.style.fontSize = '12px';
+    bgBtn.style.padding = '5px';
+    bgBtn.style.width = '40px';
+    bgBtn.style.height = '30px';
+    bgBtn.style.flex = 'none';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -1019,6 +1027,7 @@ function addBackgroundButton() {
                 document.body.style.backgroundSize = 'cover';
                 document.body.style.backgroundPosition = 'center';
                 document.body.style.backgroundRepeat = 'no-repeat';
+                document.body.style.backdropFilter = 'blur(2px)';
                 
                 document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
                 document.querySelector('#app').style.backdropFilter = 'blur(2px)';
@@ -1029,6 +1038,7 @@ function addBackgroundButton() {
     
     bgBtn.addEventListener('click', function(e) {
         e.stopPropagation();
+        e.preventDefault();
         fileInput.click();
     });
     
@@ -1040,6 +1050,8 @@ function addBackgroundButton() {
         document.body.style.backgroundImage = `url(${savedBg})`;
         document.body.style.backgroundSize = 'cover';
         document.body.style.backgroundPosition = 'center';
+        document.body.style.backdropFilter = 'blur(2px)';
+        
         document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
         document.querySelector('#app').style.backdropFilter = 'blur(2px)';
     }
@@ -1127,6 +1139,7 @@ function renderPublicMessages(container) {
         if (avatar && msg.username !== 'anonymous' && msg.username !== currentUser.username) {
             avatar.addEventListener('click', function(e) {
                 e.stopPropagation();
+                e.preventDefault();
                 openPrivateChat(msg.username);
             });
         }
@@ -1134,6 +1147,7 @@ function renderPublicMessages(container) {
         const star = messageEl.querySelector('.message-star');
         star.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             toggleStar(msg);
         });
         
@@ -1243,6 +1257,7 @@ function renderStarredMessages() {
         const removeBtn = messageEl.querySelector('.remove-star');
         removeBtn.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             removeFromStarred(star.messageId, star.channel);
         });
         
@@ -1278,8 +1293,10 @@ function setupEventListeners() {
     if (invisibleBtn) invisibleBtn.addEventListener('click', toggleInvisible);
     
     channels.forEach(ch => {
+        ch.removeEventListener('click', function(){});
         ch.addEventListener('click', function(e) {
             e.stopPropagation();
+            e.preventDefault();
             
             document.querySelectorAll('.channel, .private-channel, .starred-item, .group-channel, .friend-channel').forEach(el => {
                 el.classList.remove('active');
@@ -1298,6 +1315,7 @@ function setupEventListeners() {
     });
     
     if (messageInput) {
+        messageInput.removeEventListener('keypress', function(){});
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
