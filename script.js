@@ -6,10 +6,12 @@ let messages = JSON.parse(localStorage.getItem('messages')) || {
 };
 let privateMessages = JSON.parse(localStorage.getItem('privateMessages')) || {};
 let privateChats = JSON.parse(localStorage.getItem('privateChats')) || [];
+let starredMessages = JSON.parse(localStorage.getItem('starredMessages')) || [];
 
 let currentUser = null;
 let currentChannel = 'world';
 let currentPrivateUser = null;
+let currentStarredView = false;
 let invisibleMode = false;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -94,6 +96,7 @@ function showMain() {
     
     updateBadge();
     renderPrivateChannels();
+    renderStarredList();
 }
 
 function register() {
@@ -152,6 +155,7 @@ function login() {
 function sendMessage() {
     if (!currentUser) return;
     if (currentChannel === 'disclaimer') return;
+    if (currentStarredView) return;
     
     const input = document.getElementById('message-input');
     if (!input) return;
@@ -232,9 +236,117 @@ function getPrivateChatId(user1, user2) {
     return [user1, user2].sort().join('_');
 }
 
+function toggleStar(message) {
+    if (!currentUser) return;
+    
+    const userStarred = starredMessages.filter(s => s.username === currentUser.username);
+    const existing = userStarred.find(s => 
+        s.messageId === message.id && 
+        s.channel === message.channel
+    );
+    
+    if (existing) {
+        starredMessages = starredMessages.filter(s => 
+            !(s.username === currentUser.username && 
+              s.messageId === message.id && 
+              s.channel === message.channel)
+        );
+    } else {
+        starredMessages.push({
+            username: currentUser.username,
+            messageId: message.id,
+            channel: message.channel,
+            fromUser: message.username,
+            text: message.text,
+            timestamp: message.timestamp,
+            starredAt: Date.now()
+        });
+    }
+    
+    localStorage.setItem('starredMessages', JSON.stringify(starredMessages));
+    renderStarredList();
+    renderMessages();
+}
+
+function renderStarredList() {
+    const container = document.getElementById('starred-messages-list');
+    if (!container || !currentUser) return;
+    
+    container.innerHTML = '';
+    
+    const userStarred = starredMessages
+        .filter(s => s.username === currentUser.username)
+        .sort((a, b) => b.starredAt - a.starredAt)
+        .slice(0, 5);
+    
+    userStarred.forEach(star => {
+        const item = document.createElement('div');
+        item.className = 'starred-item';
+        item.dataset.starId = star.messageId;
+        
+        const preview = star.text.length > 20 ? star.text.substring(0, 20) + '...' : star.text;
+        
+        item.innerHTML = `
+            <span class="star-icon">★</span>
+            <span>${escapeHTML(star.fromUser)}: ${escapeHTML(preview)}</span>
+        `;
+        
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.channel, .private-channel, .starred-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            currentStarredView = true;
+            currentChannel = null;
+            currentPrivateUser = null;
+            
+            const header = document.getElementById('current-channel-header');
+            if (header) header.textContent = '★ STARRED';
+            
+            renderStarredMessages();
+        });
+        
+        container.appendChild(item);
+    });
+}
+
+function renderStarredMessages() {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const inputArea = document.getElementById('message-input-area');
+    if (inputArea) inputArea.style.display = 'none';
+    
+    const userStarred = starredMessages
+        .filter(s => s.username === currentUser.username)
+        .sort((a, b) => b.starredAt - a.starredAt);
+    
+    if (userStarred.length === 0) {
+        container.innerHTML = '<div style="padding: 20px; color: #666;">no starred messages</div>';
+        return;
+    }
+    
+    userStarred.forEach(star => {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'starred-message';
+        messageEl.innerHTML = `
+            <div class="starred-meta">
+                <span>#${escapeHTML(star.channel)}</span>
+                <span>${escapeHTML(star.fromUser)}</span>
+                <span>${new Date(star.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="message-text">${escapeHTML(star.text)}</div>
+        `;
+        container.appendChild(messageEl);
+    });
+}
+
 function renderPrivateChannels() {
     const container = document.getElementById('private-channels-list');
-    if (!container) return;
+    if (!container || !currentUser) return;
     
     container.innerHTML = '';
     
@@ -248,7 +360,7 @@ function renderPrivateChannels() {
         
         const channelEl = document.createElement('div');
         channelEl.className = 'private-channel';
-        if (currentPrivateUser === otherUser) {
+        if (currentPrivateUser === otherUser && !currentStarredView) {
             channelEl.classList.add('active');
         }
         channelEl.dataset.private = otherUser;
@@ -259,13 +371,14 @@ function renderPrivateChannels() {
         `;
         
         channelEl.addEventListener('click', function(e) {
-            document.querySelectorAll('.channel, .private-channel').forEach(el => {
+            document.querySelectorAll('.channel, .private-channel, .starred-item').forEach(el => {
                 el.classList.remove('active');
             });
             this.classList.add('active');
             
             currentPrivateUser = otherUser;
             currentChannel = null;
+            currentStarredView = false;
             
             const header = document.getElementById('current-channel-header');
             if (header) header.textContent = `💬 ${otherUser}`;
@@ -286,8 +399,9 @@ function openPrivateChat(username) {
     
     currentPrivateUser = username;
     currentChannel = null;
+    currentStarredView = false;
     
-    document.querySelectorAll('.channel, .private-channel').forEach(el => {
+    document.querySelectorAll('.channel, .private-channel, .starred-item').forEach(el => {
         el.classList.remove('active');
     });
     
@@ -339,6 +453,11 @@ function renderMessages() {
     
     container.innerHTML = '';
     
+    if (currentStarredView) {
+        renderStarredMessages();
+        return;
+    }
+    
     if (currentChannel === 'disclaimer') {
         const inputArea = document.getElementById('message-input-area');
         if (inputArea) inputArea.style.display = 'none';
@@ -358,7 +477,7 @@ function renderMessages() {
         container.appendChild(disclaimerEl);
     } else if (currentPrivateUser) {
         renderPrivateMessages(container);
-    } else {
+    } else if (currentChannel) {
         renderPublicMessages(container);
     }
     
@@ -383,6 +502,12 @@ function renderPublicMessages(container) {
             badge = getBadge(count);
         }
         
+        const isStarred = currentUser && starredMessages.some(s => 
+            s.username === currentUser.username && 
+            s.messageId === msg.id && 
+            s.channel === msg.channel
+        );
+        
         const messageEl = document.createElement('div');
         messageEl.className = 'message';
         messageEl.innerHTML = `
@@ -394,6 +519,7 @@ function renderPublicMessages(container) {
                 </div>
                 <div class="message-text">${escapeHTML(msg.text)}</div>
             </div>
+            <span class="message-star ${isStarred ? 'starred' : ''}">${isStarred ? '★' : '☆'}</span>
         `;
         
         const avatar = messageEl.querySelector('.message-avatar');
@@ -403,6 +529,12 @@ function renderPublicMessages(container) {
                 openPrivateChat(msg.username);
             });
         }
+        
+        const star = messageEl.querySelector('.message-star');
+        star.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleStar(msg);
+        });
         
         container.appendChild(messageEl);
     });
@@ -462,13 +594,14 @@ function setupEventListeners() {
     
     channels.forEach(ch => {
         ch.addEventListener('click', function() {
-            document.querySelectorAll('.channel, .private-channel').forEach(el => {
+            document.querySelectorAll('.channel, .private-channel, .starred-item').forEach(el => {
                 el.classList.remove('active');
             });
             this.classList.add('active');
             
             currentChannel = this.dataset.channel;
             currentPrivateUser = null;
+            currentStarredView = false;
             
             const header = document.getElementById('current-channel-header');
             if (header) header.textContent = '#' + this.textContent.trim();
