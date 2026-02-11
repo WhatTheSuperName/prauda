@@ -4,8 +4,12 @@ let messages = JSON.parse(localStorage.getItem('messages')) || {
     russia: [],
     usa: []
 };
+let privateMessages = JSON.parse(localStorage.getItem('privateMessages')) || {};
+let privateChats = JSON.parse(localStorage.getItem('privateChats')) || [];
+
 let currentUser = null;
 let currentChannel = 'world';
+let currentPrivateUser = null;
 let invisibleMode = false;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -89,6 +93,7 @@ function showMain() {
     if (usernameEl && currentUser) usernameEl.textContent = currentUser.username;
     
     updateBadge();
+    renderPrivateChannels();
 }
 
 function register() {
@@ -154,6 +159,17 @@ function sendMessage() {
     const text = input.value.trim();
     if (!text) return;
     
+    if (currentPrivateUser) {
+        sendPrivateMessage(currentPrivateUser, text);
+    } else {
+        sendPublicMessage(text);
+    }
+    
+    input.value = '';
+    renderMessages();
+}
+
+function sendPublicMessage(text) {
     const message = {
         id: Date.now() + Math.random(),
         username: invisibleMode ? 'anonymous' : currentUser.username,
@@ -176,8 +192,114 @@ function sendMessage() {
             updateBadge();
         }
     }
+}
+
+function sendPrivateMessage(toUsername, text) {
+    const chatId = getPrivateChatId(currentUser.username, toUsername);
     
-    input.value = '';
+    if (!privateMessages[chatId]) {
+        privateMessages[chatId] = [];
+    }
+    
+    const message = {
+        id: Date.now() + Math.random(),
+        from: currentUser.username,
+        to: toUsername,
+        text: text,
+        timestamp: Date.now()
+    };
+    
+    privateMessages[chatId].push(message);
+    localStorage.setItem('privateMessages', JSON.stringify(privateMessages));
+    
+    addPrivateChat(toUsername);
+}
+
+function addPrivateChat(username) {
+    if (username === currentUser.username) return;
+    if (username === 'anonymous') return;
+    
+    const chatId = getPrivateChatId(currentUser.username, username);
+    
+    if (!privateChats.includes(chatId)) {
+        privateChats.push(chatId);
+        localStorage.setItem('privateChats', JSON.stringify(privateChats));
+        renderPrivateChannels();
+    }
+}
+
+function getPrivateChatId(user1, user2) {
+    return [user1, user2].sort().join('_');
+}
+
+function renderPrivateChannels() {
+    const container = document.getElementById('private-channels-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const userPrivateChats = privateChats.filter(chatId => 
+        chatId.includes(currentUser.username)
+    );
+    
+    userPrivateChats.forEach(chatId => {
+        const users = chatId.split('_');
+        const otherUser = users[0] === currentUser.username ? users[1] : users[0];
+        
+        const channelEl = document.createElement('div');
+        channelEl.className = 'private-channel';
+        if (currentPrivateUser === otherUser) {
+            channelEl.classList.add('active');
+        }
+        channelEl.dataset.private = otherUser;
+        
+        channelEl.innerHTML = `
+            <div class="private-avatar"></div>
+            <span>💬 ${escapeHTML(otherUser)}</span>
+        `;
+        
+        channelEl.addEventListener('click', function(e) {
+            document.querySelectorAll('.channel, .private-channel').forEach(el => {
+                el.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            currentPrivateUser = otherUser;
+            currentChannel = null;
+            
+            const header = document.getElementById('current-channel-header');
+            if (header) header.textContent = `💬 ${otherUser}`;
+            
+            renderMessages();
+        });
+        
+        container.appendChild(channelEl);
+    });
+}
+
+function openPrivateChat(username) {
+    if (!currentUser) return;
+    if (username === currentUser.username) return;
+    if (username === 'anonymous') return;
+    
+    addPrivateChat(username);
+    
+    currentPrivateUser = username;
+    currentChannel = null;
+    
+    document.querySelectorAll('.channel, .private-channel').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    const privateChannel = Array.from(document.querySelectorAll('.private-channel'))
+        .find(el => el.dataset.private === username);
+    if (privateChannel) {
+        privateChannel.classList.add('active');
+    }
+    
+    const header = document.getElementById('current-channel-header');
+    if (header) header.textContent = `💬 ${username}`;
+    
     renderMessages();
 }
 
@@ -192,34 +314,6 @@ function updateBadge() {
     if (badgeEl && currentUser) {
         const badge = getBadge(currentUser?.messagesCount || 0);
         badgeEl.textContent = badge;
-    }
-}
-
-function quoteSelected() {
-    const messagesContainer = document.getElementById('messages-container');
-    if (!messagesContainer) return;
-    
-    const selection = window.getSelection();
-    const text = selection.toString().trim();
-    
-    if (text) {
-        const messageElement = selection.anchorNode?.closest?.('.message');
-        if (messageElement) {
-            const usernameEl = messageElement.querySelector('.message-username');
-            const username = usernameEl ? usernameEl.textContent : 'unknown';
-            
-            const input = document.getElementById('message-input');
-            if (input) {
-                const quote = `> ${username}: ${text}\n`;
-                const start = input.selectionStart;
-                const end = input.selectionEnd;
-                const value = input.value;
-                
-                input.value = value.substring(0, start) + quote + value.substring(end);
-                input.focus();
-                input.selectionStart = input.selectionEnd = start + quote.length;
-            }
-        }
     }
 }
 
@@ -262,60 +356,83 @@ function renderMessages() {
             </div>
         `;
         container.appendChild(disclaimerEl);
+    } else if (currentPrivateUser) {
+        renderPrivateMessages(container);
     } else {
-        const inputArea = document.getElementById('message-input-area');
-        if (inputArea) inputArea.style.display = 'flex';
-        
-        const channelMessages = messages[currentChannel] || [];
-        
-        channelMessages.forEach(msg => {
-            let displayUsername = msg.username;
-            let badge = '';
-            
-            if (msg.invisible && msg.originalUsername) {
-                displayUsername = 'anonymous';
-            } else {
-                const user = users.find(u => u.username === msg.username);
-                const count = user ? user.messagesCount : 0;
-                badge = getBadge(count);
-            }
-            
-            const messageEl = document.createElement('div');
-            messageEl.className = 'message';
-            
-            let messageHTML = `
-                <div class="message-avatar"></div>
-                <div class="message-content">
-                    <div class="message-header">
-                        <span class="message-username">${escapeHTML(displayUsername)}</span>
-                        <span class="message-badge">${badge}</span>
-                    </div>
-            `;
-            
-            const lines = msg.text.split('\n');
-            let quoteBlock = '';
-            let regularText = [];
-            
-            lines.forEach(line => {
-                if (line.startsWith('> ')) {
-                    quoteBlock += `<div class="message-quote">${escapeHTML(line.substring(2))}</div>`;
-                } else {
-                    regularText.push(line);
-                }
-            });
-            
-            messageHTML += quoteBlock;
-            if (regularText.length > 0) {
-                messageHTML += `<div class="message-text">${escapeHTML(regularText.join('\n'))}</div>`;
-            }
-            
-            messageHTML += `</div>`;
-            messageEl.innerHTML = messageHTML;
-            container.appendChild(messageEl);
-        });
+        renderPublicMessages(container);
     }
     
     container.scrollTop = container.scrollHeight;
+}
+
+function renderPublicMessages(container) {
+    const inputArea = document.getElementById('message-input-area');
+    if (inputArea) inputArea.style.display = 'flex';
+    
+    const channelMessages = messages[currentChannel] || [];
+    
+    channelMessages.forEach(msg => {
+        let displayUsername = msg.username;
+        let badge = '';
+        
+        if (msg.invisible && msg.originalUsername) {
+            displayUsername = 'anonymous';
+        } else {
+            const user = users.find(u => u.username === msg.username);
+            const count = user ? user.messagesCount : 0;
+            badge = getBadge(count);
+        }
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = 'message';
+        messageEl.innerHTML = `
+            <div class="message-avatar" data-username="${escapeHTML(msg.username)}"></div>
+            <div class="message-content">
+                <div class="message-header">
+                    <span class="message-username">${escapeHTML(displayUsername)}</span>
+                    <span class="message-badge">${badge}</span>
+                </div>
+                <div class="message-text">${escapeHTML(msg.text)}</div>
+            </div>
+        `;
+        
+        const avatar = messageEl.querySelector('.message-avatar');
+        if (avatar && msg.username !== 'anonymous' && msg.username !== currentUser.username) {
+            avatar.addEventListener('click', function(e) {
+                e.stopPropagation();
+                openPrivateChat(msg.username);
+            });
+        }
+        
+        container.appendChild(messageEl);
+    });
+}
+
+function renderPrivateMessages(container) {
+    const inputArea = document.getElementById('message-input-area');
+    if (inputArea) inputArea.style.display = 'flex';
+    
+    const chatId = getPrivateChatId(currentUser.username, currentPrivateUser);
+    const chatMessages = privateMessages[chatId] || [];
+    
+    chatMessages.forEach(msg => {
+        const isFromMe = msg.from === currentUser.username;
+        const displayUsername = isFromMe ? 'you' : msg.from;
+        
+        const messageEl = document.createElement('div');
+        messageEl.className = 'message';
+        messageEl.innerHTML = `
+            <div class="message-avatar"></div>
+            <div class="message-content">
+                <div class="message-header">
+                    <span class="message-username">${escapeHTML(displayUsername)}</span>
+                </div>
+                <div class="message-text">${escapeHTML(msg.text)}</div>
+            </div>
+        `;
+        
+        container.appendChild(messageEl);
+    });
 }
 
 function escapeHTML(text) {
@@ -335,23 +452,27 @@ function setupEventListeners() {
     const loginBtn = document.getElementById('login-btn');
     const sendBtn = document.getElementById('send-btn');
     const invisibleBtn = document.getElementById('invisible-mode');
-    const quoteBtn = document.getElementById('quote-btn');
     const messageInput = document.getElementById('message-input');
-    const channels = document.querySelectorAll('.channel');
+    const channels = document.querySelectorAll('.channel:not(.private-channel)');
     
     if (registerBtn) registerBtn.addEventListener('click', register);
     if (loginBtn) loginBtn.addEventListener('click', login);
     if (sendBtn) sendBtn.addEventListener('click', sendMessage);
     if (invisibleBtn) invisibleBtn.addEventListener('click', toggleInvisible);
-    if (quoteBtn) quoteBtn.addEventListener('click', quoteSelected);
     
     channels.forEach(ch => {
         ch.addEventListener('click', function() {
-            channels.forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.channel, .private-channel').forEach(el => {
+                el.classList.remove('active');
+            });
             this.classList.add('active');
+            
             currentChannel = this.dataset.channel;
+            currentPrivateUser = null;
+            
             const header = document.getElementById('current-channel-header');
             if (header) header.textContent = '#' + this.textContent.trim();
+            
             renderMessages();
         });
     });
