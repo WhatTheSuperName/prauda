@@ -1,0 +1,255 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Courier New', monospace;
+}
+
+body {
+    background-color: #000000;
+    color: #ffffff;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    border: 1px solid #333;
+}
+
+#auth-container, #main-container {
+    display: none;
+    width: 100%;
+    height: 100%;
+}
+
+#auth-container.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#main-container.active {
+    display: flex;
+}
+
+.auth-box {
+    width: 300px;
+    border: 1px solid #fff;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.logo {
+    font-size: 20px;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+input {
+    background: #000;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 10px;
+    font-size: 14px;
+}
+
+input:focus {
+    outline: none;
+    border-color: #666;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    background: #000;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    flex: 1;
+}
+
+button:hover {
+    background: #fff;
+    color: #000;
+}
+
+#auth-message {
+    color: #fff;
+    font-size: 12px;
+    min-height: 20px;
+}
+
+#main-container {
+    display: none;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    background: #1a1a1a;
+    margin-bottom: 10px;
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.user-badge {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.channels {
+    flex: 1;
+    margin-top: 20px;
+}
+
+.channel {
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    margin-bottom: 5px;
+}
+
+.channel:hover {
+    border-color: #666;
+}
+
+.channel.active {
+    border: 1px solid #fff;
+}
+
+.logout {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 20px;
+    border-bottom: 1px solid #333;
+    font-size: 18px;
+}
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.message-avatar {
+    width: 30px;
+    height: 30px;
+    background: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.message-content {
+    flex: 1;
+}
+
+.message-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.message-username {
+    font-weight: bold;
+}
+
+.message-badge {
+    font-size: 11px;
+    color: #999;
+}
+
+.message-text {
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.message-input-area {
+    display: flex;
+    padding: 20px;
+    border-top: 1px solid #333;
+    gap: 10px;
+}
+
+textarea {
+    flex: 1;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 10px;
+    resize: none;
+    font-size: 14px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #fff;
+}
+
+#send-btn {
+    flex: 0 0 60px;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border: 1px solid #fff;
+}
