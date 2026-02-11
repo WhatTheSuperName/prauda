@@ -151,11 +151,6 @@ button:hover {
     border: 1px solid #fff;
 }
 
-.logout {
-    width: 100%;
-    margin-top: 20px;
-}
-
 .chat-area {
     flex: 1;
     display: flex;
@@ -239,6 +234,22 @@ textarea:focus {
 
 #send-btn {
     flex: 0 0 60px;
+}
+
+.disclaimer-content {
+    padding: 20px;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.disclaimer-section {
+    margin-bottom: 25px;
+}
+
+.disclaimer-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-decoration: underline;
 }
 
 ::-webkit-scrollbar {
