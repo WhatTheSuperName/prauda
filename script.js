@@ -6,6 +6,11 @@ let messages = JSON.parse(localStorage.getItem('messages')) || {
 };
 let currentUser = null;
 let currentChannel = 'world';
+let invisibleMode = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    init();
+});
 
 const disclaimerText = {
     russia: `LEGAL DISCLAIMER - RUSSIAN FEDERATION
@@ -61,36 +66,39 @@ User must be 18+ to use this service.`
 };
 
 function init() {
-    if (localStorage.getItem('currentUser')) {
-        currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        if (users.find(u => u.username === currentUser.username)) {
-            showMain();
-        } else {
-            showAuth();
-        }
-    } else {
-        showAuth();
-    }
-    
+    localStorage.removeItem('currentUser');
+    currentUser = null;
+    showAuth();
     setupEventListeners();
-    renderMessages();
 }
 
 function showAuth() {
-    document.getElementById('auth-container').classList.add('active');
-    document.getElementById('main-container').classList.remove('active');
+    const authContainer = document.getElementById('auth-container');
+    const mainContainer = document.getElementById('main-container');
+    if (authContainer) authContainer.classList.add('active');
+    if (mainContainer) mainContainer.classList.remove('active');
 }
 
 function showMain() {
-    document.getElementById('auth-container').classList.remove('active');
-    document.getElementById('main-container').classList.add('active');
-    document.getElementById('current-username').textContent = currentUser.username;
+    const authContainer = document.getElementById('auth-container');
+    const mainContainer = document.getElementById('main-container');
+    if (authContainer) authContainer.classList.remove('active');
+    if (mainContainer) mainContainer.classList.add('active');
+    
+    const usernameEl = document.getElementById('current-username');
+    if (usernameEl && currentUser) usernameEl.textContent = currentUser.username;
+    
     updateBadge();
 }
 
 function register() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    
+    if (!usernameInput || !passwordInput) return;
+    
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
     
     if (!username || !password) {
         showMessage('fields cannot be empty');
@@ -112,21 +120,24 @@ function register() {
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
     
-    currentUser = newUser;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    currentUser = JSON.parse(JSON.stringify(newUser));
     
     showMain();
 }
 
 function login() {
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value;
+    const usernameInput = document.getElementById('login-username');
+    const passwordInput = document.getElementById('login-password');
+    
+    if (!usernameInput || !passwordInput) return;
+    
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
     
     const user = users.find(u => u.username === username && u.password === password);
     
     if (user) {
-        currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        currentUser = JSON.parse(JSON.stringify(user));
         showMain();
     } else {
         showMessage('invalid username or password');
@@ -138,28 +149,32 @@ function sendMessage() {
     if (currentChannel === 'disclaimer') return;
     
     const input = document.getElementById('message-input');
-    const text = input.value.trim();
+    if (!input) return;
     
+    const text = input.value.trim();
     if (!text) return;
     
     const message = {
         id: Date.now() + Math.random(),
-        username: currentUser.username,
+        username: invisibleMode ? 'anonymous' : currentUser.username,
+        originalUsername: invisibleMode ? currentUser.username : null,
         text: text,
         timestamp: Date.now(),
-        channel: currentChannel
+        channel: currentChannel,
+        invisible: invisibleMode
     };
     
     messages[currentChannel].push(message);
     localStorage.setItem('messages', JSON.stringify(messages));
     
-    const userIndex = users.findIndex(u => u.username === currentUser.username);
-    if (userIndex !== -1) {
-        users[userIndex].messagesCount++;
-        currentUser.messagesCount = users[userIndex].messagesCount;
-        localStorage.setItem('users', JSON.stringify(users));
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        updateBadge();
+    if (!invisibleMode) {
+        const userIndex = users.findIndex(u => u.username === currentUser.username);
+        if (userIndex !== -1) {
+            users[userIndex].messagesCount++;
+            currentUser.messagesCount = users[userIndex].messagesCount;
+            localStorage.setItem('users', JSON.stringify(users));
+            updateBadge();
+        }
     }
     
     input.value = '';
@@ -173,16 +188,66 @@ function getBadge(count) {
 }
 
 function updateBadge() {
-    const badge = getBadge(currentUser?.messagesCount || 0);
-    document.getElementById('current-badge').textContent = badge;
+    const badgeEl = document.getElementById('current-badge');
+    if (badgeEl && currentUser) {
+        const badge = getBadge(currentUser?.messagesCount || 0);
+        badgeEl.textContent = badge;
+    }
+}
+
+function quoteSelected() {
+    const messagesContainer = document.getElementById('messages-container');
+    if (!messagesContainer) return;
+    
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+    
+    if (text) {
+        const messageElement = selection.anchorNode?.closest?.('.message');
+        if (messageElement) {
+            const usernameEl = messageElement.querySelector('.message-username');
+            const username = usernameEl ? usernameEl.textContent : 'unknown';
+            
+            const input = document.getElementById('message-input');
+            if (input) {
+                const quote = `> ${username}: ${text}\n`;
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                const value = input.value;
+                
+                input.value = value.substring(0, start) + quote + value.substring(end);
+                input.focus();
+                input.selectionStart = input.selectionEnd = start + quote.length;
+            }
+        }
+    }
+}
+
+function toggleInvisible() {
+    invisibleMode = !invisibleMode;
+    const btn = document.getElementById('invisible-mode');
+    if (btn) {
+        if (invisibleMode) {
+            btn.classList.add('invisible-on');
+            btn.textContent = '👤❌';
+            btn.title = 'invisible mode on';
+        } else {
+            btn.classList.remove('invisible-on');
+            btn.textContent = '👤';
+            btn.title = 'invisible mode off';
+        }
+    }
 }
 
 function renderMessages() {
     const container = document.getElementById('messages-container');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     if (currentChannel === 'disclaimer') {
-        document.getElementById('message-input-area').style.display = 'none';
+        const inputArea = document.getElementById('message-input-area');
+        if (inputArea) inputArea.style.display = 'none';
         
         const disclaimerEl = document.createElement('div');
         disclaimerEl.className = 'disclaimer-content';
@@ -198,27 +263,54 @@ function renderMessages() {
         `;
         container.appendChild(disclaimerEl);
     } else {
-        document.getElementById('message-input-area').style.display = 'flex';
+        const inputArea = document.getElementById('message-input-area');
+        if (inputArea) inputArea.style.display = 'flex';
         
         const channelMessages = messages[currentChannel] || [];
         
         channelMessages.forEach(msg => {
-            const user = users.find(u => u.username === msg.username);
-            const count = user ? user.messagesCount : 0;
-            const badge = getBadge(count);
+            let displayUsername = msg.username;
+            let badge = '';
+            
+            if (msg.invisible && msg.originalUsername) {
+                displayUsername = 'anonymous';
+            } else {
+                const user = users.find(u => u.username === msg.username);
+                const count = user ? user.messagesCount : 0;
+                badge = getBadge(count);
+            }
             
             const messageEl = document.createElement('div');
             messageEl.className = 'message';
-            messageEl.innerHTML = `
+            
+            let messageHTML = `
                 <div class="message-avatar"></div>
                 <div class="message-content">
                     <div class="message-header">
-                        <span class="message-username">${escapeHTML(msg.username)}</span>
+                        <span class="message-username">${escapeHTML(displayUsername)}</span>
                         <span class="message-badge">${badge}</span>
                     </div>
-                    <div class="message-text">${escapeHTML(msg.text)}</div>
-                </div>
             `;
+            
+            const lines = msg.text.split('\n');
+            let quoteBlock = '';
+            let regularText = [];
+            
+            lines.forEach(line => {
+                if (line.startsWith('> ')) {
+                    quoteBlock += `<div class="message-quote">${escapeHTML(line.substring(2))}</div>`;
+                } else {
+                    regularText.push(line);
+                }
+            });
+            
+            messageHTML += quoteBlock;
+            if (regularText.length > 0) {
+                messageHTML += `<div class="message-text">${escapeHTML(regularText.join('\n'))}</div>`;
+            }
+            
+            messageHTML += `</div>`;
+            messageEl.innerHTML = messageHTML;
             container.appendChild(messageEl);
         });
     }
@@ -227,36 +319,49 @@ function renderMessages() {
 }
 
 function escapeHTML(text) {
+    if (text === undefined || text === null) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
 }
 
 function showMessage(text) {
-    document.getElementById('auth-message').textContent = text;
+    const msgEl = document.getElementById('auth-message');
+    if (msgEl) msgEl.textContent = text;
 }
 
 function setupEventListeners() {
-    document.getElementById('register-btn').addEventListener('click', register);
-    document.getElementById('login-btn').addEventListener('click', login);
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    const registerBtn = document.getElementById('register-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const sendBtn = document.getElementById('send-btn');
+    const invisibleBtn = document.getElementById('invisible-mode');
+    const quoteBtn = document.getElementById('quote-btn');
+    const messageInput = document.getElementById('message-input');
+    const channels = document.querySelectorAll('.channel');
     
-    document.querySelectorAll('.channel').forEach(ch => {
+    if (registerBtn) registerBtn.addEventListener('click', register);
+    if (loginBtn) loginBtn.addEventListener('click', login);
+    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+    if (invisibleBtn) invisibleBtn.addEventListener('click', toggleInvisible);
+    if (quoteBtn) quoteBtn.addEventListener('click', quoteSelected);
+    
+    channels.forEach(ch => {
         ch.addEventListener('click', function() {
-            document.querySelectorAll('.channel').forEach(c => c.classList.remove('active'));
+            channels.forEach(c => c.classList.remove('active'));
             this.classList.add('active');
             currentChannel = this.dataset.channel;
-            document.getElementById('current-channel-header').textContent = '#' + this.textContent.trim();
+            const header = document.getElementById('current-channel-header');
+            if (header) header.textContent = '#' + this.textContent.trim();
             renderMessages();
         });
     });
     
-    document.getElementById('message-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+    if (messageInput) {
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
 }
-
-init();
