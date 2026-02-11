@@ -1,29 +1,64 @@
 // ============================================
-// BLACK CHAT - ПОЛНАЯ ВЕРСИЯ
-// ВСЁ В ОДНОМ ФАЙЛЕ
+// BLACK CHAT - FIREBASE VERSION
+// РЕАЛЬНЫЙ МЕССЕНДЖЕР, ВСЕ ВИДЯТ ВСЁ
 // ============================================
 
-let users = JSON.parse(localStorage.getItem('users')) || [];
-let messages = JSON.parse(localStorage.getItem('messages')) || {
+// ========== FIREBASE CONFIG ==========
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+    getFirestore, 
+    collection, 
+    doc, 
+    setDoc, 
+    addDoc, 
+    getDoc, 
+    getDocs, 
+    query, 
+    where, 
+    orderBy, 
+    onSnapshot,
+    updateDoc,
+    arrayUnion,
+    arrayRemove,
+    deleteDoc,
+    writeBatch
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDN7QvI5JvTb7PJXJk8X8X8X8X8X8X8X8X8",
+    authDomain: "black-chat-2026.firebaseapp.com",
+    projectId: "black-chat-2026",
+    storageBucket: "black-chat-2026.firebasestorage.app",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:1234567890123456789012"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+let users = [];
+let messages = {
     world: [],
     russia: [],
     usa: []
 };
-let privateMessages = JSON.parse(localStorage.getItem('privateMessages')) || {};
-let privateChats = JSON.parse(localStorage.getItem('privateChats')) || [];
-let starredMessages = JSON.parse(localStorage.getItem('starredMessages')) || [];
-
-let friends = JSON.parse(localStorage.getItem('friends')) || [];
-let friendRequests = JSON.parse(localStorage.getItem('friendRequests')) || [];
-let groups = JSON.parse(localStorage.getItem('groups')) || [];
-let groupInvites = JSON.parse(localStorage.getItem('groupInvites')) || [];
-let groupMessages = JSON.parse(localStorage.getItem('groupMessages')) || {};
+let privateMessages = {};
+let privateChats = [];
+let starredMessages = [];
+let friends = [];
+let friendRequests = [];
+let groups = [];
+let groupInvites = [];
+let groupMessages = {};
 
 let currentUser = null;
 let currentChannel = 'world';
 let currentPrivateUser = null;
 let currentStarredView = false;
 let invisibleMode = false;
+
+let unsubscribes = [];
 
 document.addEventListener('DOMContentLoaded', function() {
     init();
@@ -84,11 +119,8 @@ User must be 18+ to use this service.`
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 function init() {
-    localStorage.removeItem('currentUser');
-    currentUser = null;
     showAuth();
     setupEventListeners();
-    
     document.body.style.backdropFilter = 'blur(2px)';
 }
 
@@ -99,7 +131,7 @@ function showAuth() {
     if (mainContainer) mainContainer.classList.remove('active');
 }
 
-function showMain() {
+async function showMain() {
     const authContainer = document.getElementById('auth-container');
     const mainContainer = document.getElementById('main-container');
     if (authContainer) authContainer.classList.remove('active');
@@ -109,6 +141,16 @@ function showMain() {
     if (usernameEl && currentUser) usernameEl.textContent = currentUser.username;
     
     updateBadge();
+    
+    // Подписываемся на обновления
+    subscribeToPublicChannels();
+    subscribeToPrivateChats();
+    subscribeToFriendRequests();
+    subscribeToFriends();
+    subscribeToGroups();
+    subscribeToGroupInvites();
+    subscribeToStarred();
+    
     renderPrivateChannels();
     renderStarredList();
     renderFriendsList();
@@ -122,8 +164,209 @@ function showMain() {
     }, 100);
 }
 
+// ========== FIREBASE SUBSCRIPTIONS ==========
+function subscribeToPublicChannels() {
+    const channels = ['world', 'russia', 'usa'];
+    
+    channels.forEach(channel => {
+        const q = query(
+            collection(db, 'public_messages'),
+            where('channel', '==', channel),
+            orderBy('timestamp', 'asc')
+        );
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            messages[channel] = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            if (currentChannel === channel && !currentPrivateUser && !currentStarredView) {
+                renderMessages();
+            }
+        });
+        
+        unsubscribes.push(unsubscribe);
+    });
+}
+
+function subscribeToPrivateChats() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'private_messages'),
+        where('participants', 'array-contains', currentUser.username),
+        orderBy('timestamp', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        privateMessages = {};
+        privateChats = [];
+        
+        snapshot.docs.forEach(doc => {
+            const msg = doc.data();
+            const chatId = [msg.from, msg.to].sort().join('_');
+            
+            if (!privateMessages[chatId]) {
+                privateMessages[chatId] = [];
+                privateChats.push(chatId);
+            }
+            
+            privateMessages[chatId].push({
+                id: doc.id,
+                ...msg
+            });
+        });
+        
+        renderPrivateChannels();
+        
+        if (currentPrivateUser) {
+            renderMessages();
+        }
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToFriendRequests() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'friend_requests'),
+        where('to', '==', currentUser.username),
+        where('status', '==', 'pending')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        friendRequests = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderFriendRequests();
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToFriends() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'friends'),
+        where('users', 'array-contains', currentUser.username)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        friends = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderFriendsList();
+        renderPrivateChannels();
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToGroups() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'groups'),
+        where('members', 'array-contains', currentUser.username)
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        groups = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderGroupsList();
+        
+        // Подписываемся на сообщения групп
+        groups.forEach(group => {
+            subscribeToGroupMessages(group.id);
+        });
+        
+        if (currentChannel && currentChannel.toString().startsWith('group_')) {
+            renderMessages();
+        }
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToGroupMessages(groupId) {
+    const q = query(
+        collection(db, 'group_messages'),
+        where('groupId', '==', groupId),
+        orderBy('timestamp', 'asc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        if (!groupMessages[groupId]) {
+            groupMessages[groupId] = [];
+        }
+        
+        groupMessages[groupId] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        
+        if (currentChannel === groupId) {
+            renderMessages();
+        }
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToGroupInvites() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'group_invites'),
+        where('to', '==', currentUser.username),
+        where('status', '==', 'pending')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        groupInvites = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderGroupInvites();
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
+function subscribeToStarred() {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'starred'),
+        where('username', '==', currentUser.username),
+        orderBy('starredAt', 'desc')
+    );
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        starredMessages = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+        renderStarredList();
+        
+        if (currentStarredView) {
+            renderMessages();
+        }
+    });
+    
+    unsubscribes.push(unsubscribe);
+}
+
 // ========== АВТОРИЗАЦИЯ ==========
-function register() {
+async function register() {
     const usernameInput = document.getElementById('login-username');
     const passwordInput = document.getElementById('login-password');
     
@@ -137,7 +380,11 @@ function register() {
         return;
     }
     
-    if (users.find(u => u.username === username)) {
+    // Проверяем, существует ли пользователь
+    const q = query(collection(db, 'users'), where('username', '==', username));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
         showMessage('username taken');
         return;
     }
@@ -149,14 +396,13 @@ function register() {
         registered: Date.now()
     };
     
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    await setDoc(doc(db, 'users', username), newUser);
     
     currentUser = JSON.parse(JSON.stringify(newUser));
     showMain();
 }
 
-function login() {
+async function login() {
     const usernameInput = document.getElementById('login-username');
     const passwordInput = document.getElementById('login-password');
     
@@ -165,10 +411,14 @@ function login() {
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
     
-    const user = users.find(u => u.username === username && u.password === password);
+    const docRef = doc(db, 'users', username);
+    const docSnap = await getDoc(docRef);
     
-    if (user) {
-        currentUser = JSON.parse(JSON.stringify(user));
+    if (docSnap.exists() && docSnap.data().password === password) {
+        currentUser = {
+            username: docSnap.id,
+            ...docSnap.data()
+        };
         showMain();
     } else {
         showMessage('invalid username or password');
@@ -176,7 +426,7 @@ function login() {
 }
 
 // ========== ОТПРАВКА СООБЩЕНИЙ ==========
-function sendMessage() {
+async function sendMessage() {
     if (!currentUser) return;
     if (currentChannel === 'disclaimer') return;
     if (currentStarredView) return;
@@ -188,20 +438,18 @@ function sendMessage() {
     if (!text) return;
     
     if (currentPrivateUser) {
-        sendPrivateMessage(currentPrivateUser, text);
+        await sendPrivateMessage(currentPrivateUser, text);
     } else if (currentChannel && currentChannel.toString().startsWith('group_')) {
-        sendGroupMessage(currentChannel, text);
+        await sendGroupMessage(currentChannel, text);
     } else if (currentChannel) {
-        sendPublicMessage(text);
+        await sendPublicMessage(text);
     }
     
     input.value = '';
-    renderMessages();
 }
 
-function sendPublicMessage(text) {
+async function sendPublicMessage(text) {
     const message = {
-        id: Date.now() + Math.random(),
         username: invisibleMode ? 'anonymous' : currentUser.username,
         originalUsername: invisibleMode ? currentUser.username : null,
         text: text,
@@ -210,97 +458,46 @@ function sendPublicMessage(text) {
         invisible: invisibleMode
     };
     
-    messages[currentChannel].push(message);
-    localStorage.setItem('messages', JSON.stringify(messages));
+    await addDoc(collection(db, 'public_messages'), message);
     
     if (!invisibleMode) {
-        const userIndex = users.findIndex(u => u.username === currentUser.username);
-        if (userIndex !== -1) {
-            users[userIndex].messagesCount++;
-            currentUser.messagesCount = users[userIndex].messagesCount;
-            localStorage.setItem('users', JSON.stringify(users));
-            updateBadge();
-        }
+        const userRef = doc(db, 'users', currentUser.username);
+        await updateDoc(userRef, {
+            messagesCount: (currentUser.messagesCount || 0) + 1
+        });
+        currentUser.messagesCount++;
+        updateBadge();
     }
 }
 
-function sendPrivateMessage(toUsername, text) {
-    const chatId = getPrivateChatId(currentUser.username, toUsername);
-    
-    if (!privateMessages[chatId]) {
-        privateMessages[chatId] = [];
-    }
-    
+async function sendPrivateMessage(toUsername, text) {
     const message = {
-        id: Date.now() + Math.random(),
         from: currentUser.username,
         to: toUsername,
+        participants: [currentUser.username, toUsername].sort(),
         text: text,
         timestamp: Date.now()
     };
     
-    privateMessages[chatId].push(message);
-    localStorage.setItem('privateMessages', JSON.stringify(privateMessages));
-    
-    addPrivateChat(toUsername);
+    await addDoc(collection(db, 'private_messages'), message);
 }
 
-function sendGroupMessage(groupId, text) {
-    if (!groupMessages[groupId]) {
-        groupMessages[groupId] = [];
-    }
-    
+async function sendGroupMessage(groupId, text) {
     const message = {
-        id: Date.now() + Math.random(),
+        groupId: groupId,
         from: currentUser.username,
         text: text,
         timestamp: Date.now()
     };
     
-    groupMessages[groupId].push(message);
-    localStorage.setItem('groupMessages', JSON.stringify(groupMessages));
+    await addDoc(collection(db, 'group_messages'), message);
 }
 
 // ========== ЧАТЫ ==========
-function getPrivateChatId(user1, user2) {
-    return [user1, user2].sort().join('_');
-}
-
-function addPrivateChat(username) {
-    if (username === currentUser.username) return;
-    if (username === 'anonymous') return;
-    
-    const chatId = getPrivateChatId(currentUser.username, username);
-    
-    if (!privateChats.includes(chatId)) {
-        privateChats.push(chatId);
-        localStorage.setItem('privateChats', JSON.stringify(privateChats));
-        renderPrivateChannels();
-    }
-}
-
-function deletePrivateChat(username) {
-    if (!currentUser) return;
-    if (username === 'anonymous') return;
-    
-    const chatId = getPrivateChatId(currentUser.username, username);
-    privateChats = privateChats.filter(id => id !== chatId);
-    localStorage.setItem('privateChats', JSON.stringify(privateChats));
-    
-    if (currentPrivateUser === username) {
-        const worldChannel = document.querySelector('.channel[data-channel="world"]');
-        if (worldChannel) worldChannel.click();
-    }
-    
-    renderPrivateChannels();
-}
-
 function openPrivateChat(username) {
     if (!currentUser) return;
     if (username === currentUser.username) return;
     if (username === 'anonymous') return;
-    
-    addPrivateChat(username);
     
     currentPrivateUser = username;
     currentChannel = null;
@@ -310,7 +507,7 @@ function openPrivateChat(username) {
         el.classList.remove('active');
     });
     
-    const privateChannel = Array.from(document.querySelectorAll('.private-channel:not(.friend-channel):not(.group-channel)'))
+    const privateChannel = Array.from(document.querySelectorAll('.private-channel'))
         .find(el => el.dataset.private === username);
     if (privateChannel) {
         privateChannel.classList.add('active');
@@ -344,27 +541,38 @@ function openGroupChat(groupId) {
     renderMessages();
 }
 
-function leaveGroup(groupId) {
+async function deletePrivateChat(username) {
     if (!currentUser) return;
     
+    const q = query(
+        collection(db, 'private_messages'),
+        where('participants', 'array-contains', currentUser.username)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.participants.includes(username)) {
+            batch.delete(doc.ref);
+        }
+    });
+    
+    await batch.commit();
+}
+
+async function leaveGroup(groupId) {
+    if (!currentUser) return;
+    
+    const groupRef = doc(db, 'groups', groupId);
+    await updateDoc(groupRef, {
+        members: arrayRemove(currentUser.username)
+    });
+    
     const group = groups.find(g => g.id === groupId);
-    if (!group) return;
-    
-    group.members = group.members.filter(m => m !== currentUser.username);
-    
-    if (group.members.length === 0) {
-        groups = groups.filter(g => g.id !== groupId);
-        delete groupMessages[groupId];
-    }
-    
-    localStorage.setItem('groups', JSON.stringify(groups));
-    localStorage.setItem('groupMessages', JSON.stringify(groupMessages));
-    
-    renderGroupsList();
-    
-    if (currentChannel === groupId) {
-        const worldChannel = document.querySelector('.channel[data-channel="world"]');
-        if (worldChannel) worldChannel.click();
+    if (group && group.members.length === 1) {
+        await deleteDoc(groupRef);
     }
 }
 
@@ -377,19 +585,22 @@ function openDisclaimerByDefault() {
 }
 
 // ========== ИЗБРАННОЕ ==========
-function toggleStar(message) {
+async function toggleStar(message) {
     if (!currentUser) return;
     
-    const existingIndex = starredMessages.findIndex(s => 
-        s.username === currentUser.username && 
-        s.messageId === message.id && 
-        s.channel === message.channel
+    const q = query(
+        collection(db, 'starred'),
+        where('username', '==', currentUser.username),
+        where('messageId', '==', message.id),
+        where('channel', '==', message.channel)
     );
     
-    if (existingIndex !== -1) {
-        starredMessages.splice(existingIndex, 1);
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+        await deleteDoc(snapshot.docs[0].ref);
     } else {
-        starredMessages.push({
+        await addDoc(collection(db, 'starred'), {
             username: currentUser.username,
             messageId: message.id,
             channel: message.channel,
@@ -399,10 +610,6 @@ function toggleStar(message) {
             starredAt: Date.now()
         });
     }
-    
-    localStorage.setItem('starredMessages', JSON.stringify(starredMessages));
-    renderStarredList();
-    renderMessages();
 }
 
 function renderStarredList() {
@@ -413,7 +620,6 @@ function renderStarredList() {
     
     const userStarred = starredMessages
         .filter(s => s.username === currentUser.username)
-        .sort((a, b) => b.starredAt - a.starredAt)
         .slice(0, 5);
     
     userStarred.forEach(star => {
@@ -451,98 +657,101 @@ function renderStarredList() {
     });
 }
 
-function removeFromStarred(messageId, channel) {
-    starredMessages = starredMessages.filter(s => 
-        !(s.username === currentUser.username && 
-          s.messageId === messageId && 
-          s.channel === channel)
+async function removeFromStarred(messageId, channel) {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'starred'),
+        where('username', '==', currentUser.username),
+        where('messageId', '==', messageId),
+        where('channel', '==', channel)
     );
     
-    localStorage.setItem('starredMessages', JSON.stringify(starredMessages));
-    renderStarredList();
-    renderMessages();
+    const snapshot = await getDocs(q);
+    snapshot.docs.forEach(async doc => {
+        await deleteDoc(doc.ref);
+    });
 }
 
 // ========== ДРУЗЬЯ ==========
-function sendFriendRequest(username) {
+async function sendFriendRequest(username) {
     if (!currentUser) return;
     if (username === currentUser.username) return;
     if (username === 'anonymous') return;
-    if (!users.find(u => u.username === username)) return;
     
-    const existing = friendRequests.find(r => 
-        r.from === currentUser.username && 
-        r.to === username && 
-        r.status === 'pending'
+    // Проверяем, есть ли уже запрос
+    const q = query(
+        collection(db, 'friend_requests'),
+        where('from', '==', currentUser.username),
+        where('to', '==', username),
+        where('status', '==', 'pending')
     );
     
-    if (existing) return;
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+        alert('request already sent');
+        return;
+    }
+    
     if (isFriend(username)) {
         alert('already friends');
         return;
     }
     
-    friendRequests.push({
-        id: Date.now() + Math.random(),
+    await addDoc(collection(db, 'friend_requests'), {
         from: currentUser.username,
         to: username,
         status: 'pending',
         timestamp: Date.now()
     });
     
-    localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
-    renderFriendRequests();
     alert(`friend request sent to ${username}`);
 }
 
-function acceptFriendRequest(requestId) {
+async function acceptFriendRequest(requestId) {
+    const requestRef = doc(db, 'friend_requests', requestId);
+    await updateDoc(requestRef, { status: 'accepted' });
+    
     const request = friendRequests.find(r => r.id === requestId);
     if (!request) return;
     
-    request.status = 'accepted';
-    
-    if (!friends.some(f => 
-        (f.user1 === request.from && f.user2 === request.to) || 
-        (f.user1 === request.to && f.user2 === request.from)
-    )) {
-        friends.push({
-            user1: request.from,
-            user2: request.to,
-            since: Date.now()
-        });
-    }
-    
-    localStorage.setItem('friends', JSON.stringify(friends));
-    localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
-    
-    renderFriendsList();
-    renderFriendRequests();
-    renderPrivateChannels();
-    renderMessages();
+    // Добавляем в друзья
+    await addDoc(collection(db, 'friends'), {
+        user1: request.from,
+        user2: request.to,
+        users: [request.from, request.to].sort(),
+        since: Date.now()
+    });
 }
 
-function declineFriendRequest(requestId) {
-    friendRequests = friendRequests.filter(r => r.id !== requestId);
-    localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
-    renderFriendRequests();
+async function declineFriendRequest(requestId) {
+    await deleteDoc(doc(db, 'friend_requests', requestId));
 }
 
-function removeFriend(username) {
-    friends = friends.filter(f => 
-        !(f.user1 === currentUser.username && f.user2 === username) &&
-        !(f.user2 === currentUser.username && f.user1 === username)
+async function removeFriend(username) {
+    if (!currentUser) return;
+    
+    const q = query(
+        collection(db, 'friends'),
+        where('users', 'array-contains', currentUser.username)
     );
     
-    localStorage.setItem('friends', JSON.stringify(friends));
-    renderFriendsList();
-    renderPrivateChannels();
+    const snapshot = await getDocs(q);
+    
+    snapshot.docs.forEach(async doc => {
+        const data = doc.data();
+        if (data.users.includes(username)) {
+            await deleteDoc(doc.ref);
+        }
+    });
 }
 
 function isFriend(username) {
     if (!currentUser) return false;
     return friends.some(f => 
-        (f.user1 === currentUser.username && f.user2 === username) ||
-        (f.user2 === currentUser.username && f.user1 === username)
+        f.users.includes(currentUser.username) && 
+        f.users.includes(username)
     );
 }
 
@@ -573,11 +782,7 @@ function renderFriendsList() {
     
     friendsList.innerHTML = '';
     
-    const userFriends = friends.filter(f => 
-        f.user1 === currentUser.username || f.user2 === currentUser.username
-    );
-    
-    userFriends.forEach(f => {
+    friends.forEach(f => {
         const friendName = f.user1 === currentUser.username ? f.user2 : f.user1;
         
         const friendEl = document.createElement('div');
@@ -616,12 +821,7 @@ function renderFriendRequests() {
     let requestsHeader = document.getElementById('requests-header');
     let requestsList = document.getElementById('requests-list');
     
-    const incoming = friendRequests.filter(r => 
-        r.to === currentUser.username && 
-        r.status === 'pending'
-    );
-    
-    if (incoming.length === 0) {
+    if (friendRequests.length === 0) {
         if (requestsHeader) requestsHeader.remove();
         if (requestsList) requestsList.remove();
         return;
@@ -647,7 +847,7 @@ function renderFriendRequests() {
     
     requestsList.innerHTML = '';
     
-    incoming.forEach(req => {
+    friendRequests.forEach(req => {
         const reqEl = document.createElement('div');
         reqEl.className = 'private-channel';
         reqEl.style.display = 'flex';
@@ -681,7 +881,7 @@ function renderFriendRequests() {
 }
 
 // ========== ГРУППЫ ==========
-function createGroup(name) {
+async function createGroup(name) {
     if (!currentUser) return;
     
     const userGroups = groups.filter(g => g.members.includes(currentUser.username));
@@ -690,25 +890,19 @@ function createGroup(name) {
         return;
     }
     
-    const group = {
-        id: 'group_' + Date.now() + Math.random(),
+    const groupRef = await addDoc(collection(db, 'groups'), {
         name: name || `group_${userGroups.length + 1}`,
         creator: currentUser.username,
         members: [currentUser.username],
         created: Date.now()
-    };
+    });
     
-    groups.push(group);
-    localStorage.setItem('groups', JSON.stringify(groups));
-    
-    groupMessages[group.id] = [];
-    localStorage.setItem('groupMessages', JSON.stringify(groupMessages));
-    
-    renderGroupsList();
-    openGroupChat(group.id);
+    await updateDoc(groupRef, {
+        id: groupRef.id
+    });
 }
 
-function inviteToGroup(groupId, username) {
+async function inviteToGroup(groupId, username) {
     if (!currentUser) return;
     if (username === currentUser.username) return;
     if (!isFriend(username)) return;
@@ -717,16 +911,18 @@ function inviteToGroup(groupId, username) {
     if (!group) return;
     if (group.members.includes(username)) return;
     
-    const existing = groupInvites.find(i => 
-        i.groupId === groupId && 
-        i.to === username && 
-        i.status === 'pending'
+    // Проверяем, есть ли уже приглашение
+    const q = query(
+        collection(db, 'group_invites'),
+        where('groupId', '==', groupId),
+        where('to', '==', username),
+        where('status', '==', 'pending')
     );
     
-    if (existing) return;
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) return;
     
-    groupInvites.push({
-        id: Date.now() + Math.random(),
+    await addDoc(collection(db, 'group_invites'), {
         groupId: groupId,
         groupName: group.name,
         from: currentUser.username,
@@ -735,53 +931,48 @@ function inviteToGroup(groupId, username) {
         timestamp: Date.now()
     });
     
-    localStorage.setItem('groupInvites', JSON.stringify(groupInvites));
-    renderGroupInvites();
     alert(`invite sent to ${username}`);
 }
 
-function acceptGroupInvite(inviteId) {
+async function acceptGroupInvite(inviteId) {
     const invite = groupInvites.find(i => i.id === inviteId);
     if (!invite) return;
     
-    const group = groups.find(g => g.id === invite.groupId);
-    if (!group) return;
+    const groupRef = doc(db, 'groups', invite.groupId);
+    await updateDoc(groupRef, {
+        members: arrayUnion(invite.to)
+    });
     
-    if (!group.members.includes(invite.to)) {
-        group.members.push(invite.to);
-    }
-    
-    invite.status = 'accepted';
-    
-    localStorage.setItem('groups', JSON.stringify(groups));
-    localStorage.setItem('groupInvites', JSON.stringify(groupInvites));
-    
-    renderGroupsList();
-    renderGroupInvites();
+    await deleteDoc(doc(db, 'group_invites', inviteId));
 }
 
-function declineGroupInvite(inviteId) {
-    groupInvites = groupInvites.filter(i => i.id !== inviteId);
-    localStorage.setItem('groupInvites', JSON.stringify(groupInvites));
-    renderGroupInvites();
+async function declineGroupInvite(inviteId) {
+    await deleteDoc(doc(db, 'group_invites', inviteId));
 }
 
-function removeGroup(groupId) {
-    groups = groups.filter(g => g.id !== groupId);
-    delete groupMessages[groupId];
+async function removeGroup(groupId) {
+    // Удаляем группу
+    await deleteDoc(doc(db, 'groups', groupId));
     
-    groupInvites = groupInvites.filter(i => i.groupId !== groupId);
+    // Удаляем сообщения группы
+    const q = query(collection(db, 'group_messages'), where('groupId', '==', groupId));
+    const snapshot = await getDocs(q);
     
-    localStorage.setItem('groups', JSON.stringify(groups));
-    localStorage.setItem('groupMessages', JSON.stringify(groupMessages));
-    localStorage.setItem('groupInvites', JSON.stringify(groupInvites));
+    const batch = writeBatch(db);
+    snapshot.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
     
-    renderGroupsList();
+    // Удаляем приглашения
+    const invitesQuery = query(collection(db, 'group_invites'), where('groupId', '==', groupId));
+    const invitesSnapshot = await getDocs(invitesQuery);
     
-    if (currentChannel === groupId) {
-        const worldChannel = document.querySelector('.channel[data-channel="world"]');
-        if (worldChannel) worldChannel.click();
-    }
+    const invitesBatch = writeBatch(db);
+    invitesSnapshot.docs.forEach(doc => {
+        invitesBatch.delete(doc.ref);
+    });
+    await invitesBatch.commit();
 }
 
 function renderGroupsList() {
@@ -817,9 +1008,7 @@ function renderGroupsList() {
     
     groupsList.innerHTML = '';
     
-    const userGroups = groups.filter(g => g.members.includes(currentUser.username));
-    
-    userGroups.forEach(group => {
+    groups.forEach(group => {
         const groupEl = document.createElement('div');
         groupEl.className = 'private-channel group-channel';
         groupEl.dataset.group = group.id;
@@ -887,12 +1076,7 @@ function renderGroupInvites() {
     let invitesHeader = document.getElementById('invites-header');
     let invitesList = document.getElementById('invites-list');
     
-    const incoming = groupInvites.filter(i => 
-        i.to === currentUser.username && 
-        i.status === 'pending'
-    );
-    
-    if (incoming.length === 0) {
+    if (groupInvites.length === 0) {
         if (invitesHeader) invitesHeader.remove();
         if (invitesList) invitesList.remove();
         return;
@@ -918,7 +1102,7 @@ function renderGroupInvites() {
     
     invitesList.innerHTML = '';
     
-    incoming.forEach(invite => {
+    groupInvites.forEach(invite => {
         const inviteEl = document.createElement('div');
         inviteEl.className = 'private-channel';
         inviteEl.style.display = 'flex';
@@ -1178,10 +1362,6 @@ function renderPublicMessages(container) {
         
         if (msg.invisible && msg.originalUsername) {
             displayUsername = 'anonymous';
-        } else {
-            const user = users.find(u => u.username === msg.username);
-            const count = user ? user.messagesCount : 0;
-            badge = getBadge(count);
         }
         
         const isStarred = currentUser && starredMessages.some(s => 
@@ -1238,7 +1418,7 @@ function renderPrivateMessages(container) {
     const inputArea = document.getElementById('message-input-area');
     if (inputArea) inputArea.style.display = 'flex';
     
-    const chatId = getPrivateChatId(currentUser.username, currentPrivateUser);
+    const chatId = [currentUser.username, currentPrivateUser].sort().join('_');
     const chatMessages = privateMessages[chatId] || [];
     
     const friendStatus = isFriend(currentPrivateUser);
@@ -1315,14 +1495,14 @@ function renderGroupMessages(container) {
         invitePanel.style.padding = '10px';
         invitePanel.style.border = '1px solid #333';
         
-        const friendList = friends.filter(f => 
-            (f.user1 === currentUser.username || f.user2 === currentUser.username) &&
-            !group.members.includes(f.user1 === currentUser.username ? f.user2 : f.user1)
-        ).map(f => f.user1 === currentUser.username ? f.user2 : f.user1);
+        const availableFriends = friends
+            .filter(f => f.users.includes(currentUser.username))
+            .map(f => f.user1 === currentUser.username ? f.user2 : f.user1)
+            .filter(f => !group.members.includes(f));
         
-        if (friendList.length > 0) {
+        if (availableFriends.length > 0) {
             let options = '<option value="">select friend to invite</option>';
-            friendList.forEach(f => {
+            availableFriends.forEach(f => {
                 options += `<option value="${escapeHTML(f)}">${escapeHTML(f)}</option>`;
             });
             
@@ -1478,6 +1658,3 @@ function setupEventListeners() {
         });
     }
 }
-
-// СТАРТ
-init();
