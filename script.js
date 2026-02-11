@@ -1,4 +1,7 @@
-
+// ============================================
+// BLACK CHAT - ПОЛНАЯ ВЕРСИЯ
+// ВСЁ В ОДНОМ ФАЙЛЕ
+// ============================================
 
 let users = JSON.parse(localStorage.getItem('users')) || [];
 let messages = JSON.parse(localStorage.getItem('messages')) || {
@@ -276,6 +279,22 @@ function addPrivateChat(username) {
     }
 }
 
+function deletePrivateChat(username) {
+    if (!currentUser) return;
+    if (username === 'anonymous') return;
+    
+    const chatId = getPrivateChatId(currentUser.username, username);
+    privateChats = privateChats.filter(id => id !== chatId);
+    localStorage.setItem('privateChats', JSON.stringify(privateChats));
+    
+    if (currentPrivateUser === username) {
+        const worldChannel = document.querySelector('.channel[data-channel="world"]');
+        if (worldChannel) worldChannel.click();
+    }
+    
+    renderPrivateChannels();
+}
+
 function openPrivateChat(username) {
     if (!currentUser) return;
     if (username === currentUser.username) return;
@@ -323,6 +342,30 @@ function openGroupChat(groupId) {
     if (header) header.textContent = `👥 ${group.name}`;
     
     renderMessages();
+}
+
+function leaveGroup(groupId) {
+    if (!currentUser) return;
+    
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    
+    group.members = group.members.filter(m => m !== currentUser.username);
+    
+    if (group.members.length === 0) {
+        groups = groups.filter(g => g.id !== groupId);
+        delete groupMessages[groupId];
+    }
+    
+    localStorage.setItem('groups', JSON.stringify(groups));
+    localStorage.setItem('groupMessages', JSON.stringify(groupMessages));
+    
+    renderGroupsList();
+    
+    if (currentChannel === groupId) {
+        const worldChannel = document.querySelector('.channel[data-channel="world"]');
+        if (worldChannel) worldChannel.click();
+    }
 }
 
 function openDisclaimerByDefault() {
@@ -694,6 +737,7 @@ function inviteToGroup(groupId, username) {
     
     localStorage.setItem('groupInvites', JSON.stringify(groupInvites));
     renderGroupInvites();
+    alert(`invite sent to ${username}`);
 }
 
 function acceptGroupInvite(inviteId) {
@@ -780,23 +824,36 @@ function renderGroupsList() {
         groupEl.className = 'private-channel group-channel';
         groupEl.dataset.group = group.id;
         
+        const isCreator = group.creator === currentUser.username;
+        
         groupEl.innerHTML = `
             <div class="private-avatar"></div>
             <span>👥 ${escapeHTML(group.name)}</span>
-            <span style="margin-left: auto; color: #666; font-size: 11px;">${group.members.length}</span>
+            <span style="margin-left: auto; color: #666; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+                ${group.members.length}
+                <span class="delete-chat" style="cursor: pointer; color: #666; font-size: 14px; padding: 0 2px;">✕</span>
+            </span>
         `;
         
         groupEl.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-chat')) return;
             e.stopPropagation();
             e.preventDefault();
             openGroupChat(group.id);
         });
         
-        groupEl.addEventListener('contextmenu', function(e) {
+        const deleteBtn = groupEl.querySelector('.delete-chat');
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
             e.preventDefault();
-            if (group.creator === currentUser.username) {
-                if (confirm(`delete group ${group.name}?`)) {
+            
+            if (isCreator) {
+                if (confirm(`delete group ${group.name} permanently?`)) {
                     removeGroup(group.id);
+                }
+            } else {
+                if (confirm(`leave group ${group.name}?`)) {
+                    leaveGroup(group.id);
                 }
             }
         });
@@ -922,10 +979,14 @@ function renderPrivateChannels() {
         channelEl.innerHTML = `
             <div class="private-avatar"></div>
             <span>💬 ${escapeHTML(otherUser)}</span>
-            ${isFriend(otherUser) ? '<span style="margin-left: auto; color: #fff; font-size: 12px;">★</span>' : ''}
+            <span style="margin-left: auto; display: flex; align-items: center; gap: 5px;">
+                ${isFriend(otherUser) ? '<span style="color: #fff; font-size: 12px;">★</span>' : ''}
+                <span class="delete-chat" style="cursor: pointer; color: #666; font-size: 14px; padding: 0 2px;">✕</span>
+            </span>
         `;
         
         channelEl.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-chat')) return;
             e.stopPropagation();
             e.preventDefault();
             
@@ -944,19 +1005,12 @@ function renderPrivateChannels() {
             renderMessages();
         });
         
-        channelEl.addEventListener('contextmenu', function(e) {
+        const deleteBtn = channelEl.querySelector('.delete-chat');
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
             e.preventDefault();
             if (confirm(`delete chat with ${otherUser}?`)) {
-                const chatId = getPrivateChatId(currentUser.username, otherUser);
-                privateChats = privateChats.filter(id => id !== chatId);
-                localStorage.setItem('privateChats', JSON.stringify(privateChats));
-                
-                if (currentPrivateUser === otherUser) {
-                    const worldChannel = document.querySelector('.channel[data-channel="world"]');
-                    if (worldChannel) worldChannel.click();
-                }
-                
-                renderPrivateChannels();
+                deletePrivateChat(otherUser);
             }
         });
         
@@ -1244,6 +1298,60 @@ function renderGroupMessages(container) {
     
     const group = groups.find(g => g.id === currentChannel);
     if (!group) return;
+    
+    const isCreator = group.creator === currentUser.username;
+    
+    const header = document.getElementById('current-channel-header');
+    if (header) {
+        header.innerHTML = `👥 ${escapeHTML(group.name)} ${isCreator ? '👑' : ''}`;
+    }
+    
+    if (isCreator) {
+        const invitePanel = document.createElement('div');
+        invitePanel.style.display = 'flex';
+        invitePanel.style.justifyContent = 'space-between';
+        invitePanel.style.alignItems = 'center';
+        invitePanel.style.marginBottom = '15px';
+        invitePanel.style.padding = '10px';
+        invitePanel.style.border = '1px solid #333';
+        
+        const friendList = friends.filter(f => 
+            (f.user1 === currentUser.username || f.user2 === currentUser.username) &&
+            !group.members.includes(f.user1 === currentUser.username ? f.user2 : f.user1)
+        ).map(f => f.user1 === currentUser.username ? f.user2 : f.user1);
+        
+        if (friendList.length > 0) {
+            let options = '<option value="">select friend to invite</option>';
+            friendList.forEach(f => {
+                options += `<option value="${escapeHTML(f)}">${escapeHTML(f)}</option>`;
+            });
+            
+            invitePanel.innerHTML = `
+                <select id="invite-friend-select" style="flex: 1; background: #000; color: #fff; border: 1px solid #333; padding: 5px;">
+                    ${options}
+                </select>
+                <button id="invite-friend-btn" style="width: auto; padding: 5px 10px; margin-left: 10px;">invite</button>
+            `;
+            
+            container.appendChild(invitePanel);
+            
+            const inviteBtn = document.getElementById('invite-friend-btn');
+            const select = document.getElementById('invite-friend-select');
+            
+            inviteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const friend = select.value;
+                if (friend) {
+                    inviteToGroup(group.id, friend);
+                    select.value = '';
+                }
+            });
+        } else {
+            invitePanel.innerHTML = '<span style="color: #666;">no friends to invite</span>';
+            container.appendChild(invitePanel);
+        }
+    }
     
     const messages = groupMessages[currentChannel] || [];
     
