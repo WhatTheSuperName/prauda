@@ -210,11 +210,44 @@ button:hover {
     line-height: 1.4;
 }
 
+.message-quote {
+    border-left: 2px solid #666;
+    padding-left: 10px;
+    margin-bottom: 5px;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.message-quote-author {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 2px;
+}
+
 .message-input-area {
     display: flex;
     padding: 20px;
     border-top: 1px solid #333;
     gap: 10px;
+    align-items: flex-end;
+}
+
+.input-controls {
+    display: flex;
+    gap: 5px;
+}
+
+#invisible-mode, #quote-btn {
+    flex: 0 0 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 18px;
+}
+
+#invisible-mode.invisible-on {
+    background: #333;
+    color: #fff;
+    border-color: #fff;
 }
 
 textarea {
@@ -225,6 +258,7 @@ textarea {
     padding: 10px;
     resize: none;
     font-size: 14px;
+    min-height: 40px;
 }
 
 textarea:focus {
@@ -234,6 +268,7 @@ textarea:focus {
 
 #send-btn {
     flex: 0 0 60px;
+    height: 40px;
 }
 
 .disclaimer-content {
