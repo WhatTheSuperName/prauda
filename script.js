@@ -1,3 +1,7 @@
+// ============================================
+// BLACK CHAT - ПОЛНАЯ ВЕРСИЯ
+// ВСЁ В ОДНОМ ФАЙЛЕ
+// ============================================
 
 let users = JSON.parse(localStorage.getItem('users')) || [];
 let messages = JSON.parse(localStorage.getItem('messages')) || {
@@ -85,7 +89,6 @@ function init() {
     showAuth();
     setupEventListeners();
     
-    // Применяем размытие фона при загрузке
     document.body.style.backdropFilter = 'blur(2px)';
 }
 
@@ -301,12 +304,6 @@ function openPrivateChat(username) {
     if (header) header.textContent = `💬 ${username}`;
     
     renderMessages();
-    
-    setTimeout(() => {
-        if (!isFriend(username) && username !== 'anonymous') {
-            sendFriendRequest(username);
-        }
-    }, 500);
 }
 
 function openGroupChat(groupId) {
@@ -440,7 +437,10 @@ function sendFriendRequest(username) {
     );
     
     if (existing) return;
-    if (isFriend(username)) return;
+    if (isFriend(username)) {
+        alert('already friends');
+        return;
+    }
     
     friendRequests.push({
         id: Date.now() + Math.random(),
@@ -452,6 +452,7 @@ function sendFriendRequest(username) {
     
     localStorage.setItem('friendRequests', JSON.stringify(friendRequests));
     renderFriendRequests();
+    alert(`friend request sent to ${username}`);
 }
 
 function acceptFriendRequest(requestId) {
@@ -476,6 +477,8 @@ function acceptFriendRequest(requestId) {
     
     renderFriendsList();
     renderFriendRequests();
+    renderPrivateChannels();
+    renderMessages();
 }
 
 function declineFriendRequest(requestId) {
@@ -492,6 +495,7 @@ function removeFriend(username) {
     
     localStorage.setItem('friends', JSON.stringify(friends));
     renderFriendsList();
+    renderPrivateChannels();
 }
 
 function isFriend(username) {
@@ -1003,13 +1007,17 @@ function addBackgroundButton() {
     
     const bgBtn = document.createElement('button');
     bgBtn.id = 'bg-btn';
-    bgBtn.textContent = 'BG';
+    bgBtn.textContent = '·';
     bgBtn.style.marginTop = '10px';
-    bgBtn.style.fontSize = '12px';
-    bgBtn.style.padding = '5px';
-    bgBtn.style.width = '40px';
-    bgBtn.style.height = '30px';
+    bgBtn.style.fontSize = '16px';
+    bgBtn.style.padding = '0';
+    bgBtn.style.width = '24px';
+    bgBtn.style.height = '24px';
+    bgBtn.style.lineHeight = '20px';
     bgBtn.style.flex = 'none';
+    bgBtn.style.opacity = '0.5';
+    bgBtn.style.border = '1px solid #333';
+    bgBtn.style.color = '#666';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -1023,14 +1031,7 @@ function addBackgroundButton() {
             const reader = new FileReader();
             reader.onload = function(readerEvent) {
                 localStorage.setItem('backgroundImage', readerEvent.target.result);
-                document.body.style.backgroundImage = `url(${readerEvent.target.result})`;
-                document.body.style.backgroundSize = 'cover';
-                document.body.style.backgroundPosition = 'center';
-                document.body.style.backgroundRepeat = 'no-repeat';
-                document.body.style.backdropFilter = 'blur(2px)';
-                
-                document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
-                document.querySelector('#app').style.backdropFilter = 'blur(2px)';
+                applyBackground(readerEvent.target.result);
             };
             reader.readAsDataURL(file);
         }
@@ -1039,7 +1040,19 @@ function addBackgroundButton() {
     bgBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         e.preventDefault();
-        fileInput.click();
+        
+        const action = confirm('reset to black or change image?\nOK - change image\nCancel - reset to black');
+        
+        if (action) {
+            fileInput.click();
+        } else {
+            localStorage.removeItem('backgroundImage');
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = '#000000';
+            document.body.style.backdropFilter = 'blur(2px)';
+            document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
+            document.querySelector('#app').style.backdropFilter = 'blur(2px)';
+        }
     });
     
     sidebar.appendChild(fileInput);
@@ -1047,14 +1060,19 @@ function addBackgroundButton() {
     
     const savedBg = localStorage.getItem('backgroundImage');
     if (savedBg) {
-        document.body.style.backgroundImage = `url(${savedBg})`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-        document.body.style.backdropFilter = 'blur(2px)';
-        
-        document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
-        document.querySelector('#app').style.backdropFilter = 'blur(2px)';
+        applyBackground(savedBg);
     }
+}
+
+function applyBackground(imageData) {
+    document.body.style.backgroundImage = `url(${imageData})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    document.body.style.backgroundRepeat = 'no-repeat';
+    document.body.style.backdropFilter = 'blur(2px)';
+    
+    document.querySelector('#app').style.backgroundColor = 'rgba(0,0,0,0.85)';
+    document.querySelector('#app').style.backdropFilter = 'blur(2px)';
 }
 
 // ========== РЕНДЕРИНГ СООБЩЕНИЙ ==========
@@ -1171,6 +1189,37 @@ function renderPrivateMessages(container) {
     
     const chatId = getPrivateChatId(currentUser.username, currentPrivateUser);
     const chatMessages = privateMessages[chatId] || [];
+    
+    const friendStatus = isFriend(currentPrivateUser);
+    
+    const header = document.getElementById('current-channel-header');
+    if (header) {
+        header.innerHTML = `💬 ${escapeHTML(currentPrivateUser)} ${friendStatus ? '★' : ''}`;
+    }
+    
+    const addFriendBtn = document.createElement('div');
+    addFriendBtn.style.display = 'flex';
+    addFriendBtn.style.justifyContent = 'flex-end';
+    addFriendBtn.style.marginBottom = '10px';
+    
+    if (!friendStatus && currentPrivateUser !== 'anonymous') {
+        addFriendBtn.innerHTML = `
+            <button style="width: auto; padding: 5px 10px; font-size: 12px;" id="add-friend-from-chat">
+                + add friend
+            </button>
+        `;
+        
+        container.appendChild(addFriendBtn);
+        
+        const btn = document.getElementById('add-friend-from-chat');
+        if (btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                sendFriendRequest(currentPrivateUser);
+            });
+        }
+    }
     
     chatMessages.forEach(msg => {
         const isFromMe = msg.from === currentUser.username;
