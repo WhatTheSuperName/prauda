@@ -10,7 +10,7 @@
     <div id="app">
         <div id="auth-container" class="active">
             <div class="auth-box">
-                <div class="logo">BLACK//CHAT</div>
+                <div class="logo">////</div>
                 <input type="text" id="login-username" placeholder="username" autocomplete="off">
                 <input type="password" id="login-password" placeholder="password">
                 <div class="auth-buttons">
@@ -32,6 +32,10 @@
                     <div class="channel active" data-channel="world">🌍 WORLD</div>
                     <div class="channel" data-channel="russia">🇷🇺 RUSSIA</div>
                     <div class="channel" data-channel="usa">🇺🇸 USA</div>
+                    <div class="channel-divider"></div>
+                    <div class="channel-header">PRIVATE</div>
+                    <div id="private-channels-list"></div>
+                    <div class="channel-divider"></div>
                     <div class="channel" data-channel="disclaimer">⚖️ DISCLAIMER</div>
                 </div>
             </div>
@@ -42,7 +46,6 @@
                 <div class="message-input-area" id="message-input-area">
                     <div class="input-controls">
                         <button id="invisible-mode" class="invisible-off" title="invisible mode">👤</button>
-                        <button id="quote-btn" class="quote-btn" title="quote selected">❝</button>
                     </div>
                     <textarea id="message-input" placeholder="message..." rows="1"></textarea>
                     <button id="send-btn">→</button>
