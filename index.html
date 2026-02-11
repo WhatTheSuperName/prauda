@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>black chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="auth-container" class="active">
+            <div class="auth-box">
+                <div class="logo">BLACK//CHAT</div>
+                <input type="text" id="login-username" placeholder="никнейм" autocomplete="off">
+                <input type="password" id="login-password" placeholder="пароль">
+                <div class="auth-buttons">
+                    <button id="login-btn">вход</button>
+                    <button id="register-btn">регистрация</button>
+                </div>
+                <div id="auth-message"></div>
+            </div>
+        </div>
+
+        <div id="main-container">
+            <div class="sidebar">
+                <div class="user-info">
+                    <div class="user-avatar"></div>
+                    <div class="user-name" id="current-username"></div>
+                    <div class="user-badge" id="current-badge"></div>
+                </div>
+                <div class="channels">
+                    <div class="channel active" data-channel="world">🌍 world</div>
+                    <div class="channel" data-channel="russia">🇷🇺 russia</div>
+                    <div class="channel" data-channel="usa">🇺🇸 usa</div>
+                </div>
+                <button id="logout-btn" class="logout">выход</button>
+            </div>
+            
+            <div class="chat-area">
+                <div class="chat-header" id="current-channel-header">#world</div>
+                <div class="messages" id="messages-container"></div>
+                <div class="message-input-area">
+                    <textarea id="message-input" placeholder="сообщение..." rows="1"></textarea>
+                    <button id="send-btn">→</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
