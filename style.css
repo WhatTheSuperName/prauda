@@ -103,6 +103,7 @@ button:hover {
     display: flex;
     flex-direction: column;
     padding: 20px;
+    overflow-y: auto;
 }
 
 .user-info {
@@ -151,6 +152,44 @@ button:hover {
     border: 1px solid #fff;
 }
 
+.channel-divider {
+    height: 1px;
+    background: #333;
+    margin: 15px 0;
+}
+
+.channel-header {
+    padding: 5px 10px;
+    color: #666;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+.private-channel {
+    padding: 10px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.private-channel:hover {
+    border-color: #666;
+}
+
+.private-channel.active {
+    border: 1px solid #fff;
+}
+
+.private-avatar {
+    width: 20px;
+    height: 20px;
+    background: #1a1a1a;
+    flex-shrink: 0;
+}
+
 .chat-area {
     flex: 1;
     display: flex;
@@ -176,6 +215,7 @@ button:hover {
     display: flex;
     align-items: flex-start;
     gap: 10px;
+    cursor: pointer;
 }
 
 .message-avatar {
@@ -183,6 +223,11 @@ button:hover {
     height: 30px;
     background: #1a1a1a;
     flex-shrink: 0;
+    cursor: pointer;
+}
+
+.message-avatar:hover {
+    border: 1px solid #fff;
 }
 
 .message-content {
@@ -210,20 +255,6 @@ button:hover {
     line-height: 1.4;
 }
 
-.message-quote {
-    border-left: 2px solid #666;
-    padding-left: 10px;
-    margin-bottom: 5px;
-    font-size: 13px;
-    color: #ccc;
-}
-
-.message-quote-author {
-    font-size: 11px;
-    color: #999;
-    margin-bottom: 2px;
-}
-
 .message-input-area {
     display: flex;
     padding: 20px;
@@ -237,7 +268,7 @@ button:hover {
     gap: 5px;
 }
 
-#invisible-mode, #quote-btn {
+#invisible-mode {
     flex: 0 0 40px;
     height: 40px;
     padding: 0;
