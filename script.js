@@ -1,7 +1,4 @@
-// ============================================
-// BLACK CHAT - ПОЛНАЯ ВЕРСИЯ
-// ВСЁ В ОДНОМ ФАЙЛЕ
-// ============================================
+
 
 let users = JSON.parse(localStorage.getItem('users')) || [];
 let messages = JSON.parse(localStorage.getItem('messages')) || {
