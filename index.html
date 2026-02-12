@@ -1,62 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLACK CHAT</title>
+    <title>Черный чат</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app">
-        <div id="auth-container" class="active">
+        <div id="auth" class="page active">
             <div class="auth-box">
-                <div class="logo">////</div>
-                <input type="text" id="login-username" placeholder="username" autocomplete="off">
-                <input type="password" id="login-password" placeholder="password">
+                <h1>▋ ВХОД / РЕГИСТРАЦИЯ</h1>
+                <input type="text" id="username" placeholder="никнейм">
+                <input type="password" id="password" placeholder="пароль">
                 <div class="auth-buttons">
-                    <button id="login-btn">login</button>
-                    <button id="register-btn">register</button>
+                    <button id="loginBtn">ВОЙТИ</button>
+                    <button id="registerBtn">СОЗДАТЬ</button>
                 </div>
-                <div id="auth-message"></div>
+                <div id="authMessage"></div>
             </div>
         </div>
 
-        <div id="main-container">
+        <div id="main" class="page">
             <div class="sidebar">
-                <div class="user-info">
-                    <div class="user-avatar"></div>
-                    <div class="user-name" id="current-username"></div>
-                    <div class="user-badge" id="current-badge"></div>
+                <div class="userinfo">
+                    <div class="avatar">⬤</div>
+                    <div class="userdata">
+                        <span id="currentUser"></span>
+                        <span id="userBadge"></span>
+                    </div>
+                    <button id="logoutBtn">[x]</button>
                 </div>
                 <div class="channels">
                     <div class="channel active" data-channel="world">🌍 WORLD</div>
                     <div class="channel" data-channel="russia">🇷🇺 RUSSIA</div>
                     <div class="channel" data-channel="usa">🇺🇸 USA</div>
-                    <div class="channel-divider"></div>
-                    <div class="channel-header">STARRED</div>
-                    <div id="starred-messages-list"></div>
-                    <div class="channel-divider"></div>
-                    <div class="channel-header">PRIVATE</div>
-                    <div id="private-channels-list"></div>
-                    <div class="channel-divider"></div>
-                    <div class="channel" data-channel="disclaimer">⚖️ DISCLAIMER</div>
+                </div>
+                <div class="stats">
+                    <div>сообщений: <span id="postCount">0</span></div>
+                    <div>значок: <span id="badgeInfo">⛔</span></div>
                 </div>
             </div>
-            
             <div class="chat-area">
-                <div class="chat-header" id="current-channel-header">#WORLD</div>
-                <div class="messages" id="messages-container"></div>
-                <div class="message-input-area" id="message-input-area">
-                    <div class="input-controls">
-                        <button id="invisible-mode" class="invisible-off" title="invisible mode">👤</button>
-                    </div>
-                    <textarea id="message-input" placeholder="message..." rows="1"></textarea>
-                    <button id="send-btn">→</button>
+                <div class="channel-header" id="currentChannelLabel">WORLD</div>
+                <div id="messageList" class="message-list"></div>
+                <div class="message-input-area">
+                    <textarea id="messageText" placeholder="текст сообщения..."></textarea>
+                    <button id="sendMessageBtn">→</button>
                 </div>
             </div>
         </div>
     </div>
-    <!-- ПОДКЛЮЧЕНИЕ FIREBASE И ОСНОВНОГО СКРИПТА -->
-    <script type="module" src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
