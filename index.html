@@ -1,535 +1,750 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BLACK CHAT</title>
+    <title>BLACK TERMINAL</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
         }
+        
         body {
-            background: black;
-            color: #ccc;
+            background: #000000;
+            color: #c0c0c0;
+            line-height: 1.2;
         }
+        
         #app {
             width: 100vw;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            position: relative;
         }
+        
         .page {
             display: none;
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
+        
         .active {
             display: block;
         }
-        #authPage {
+        
+        /* ---------- AUTH PAGE ---------- */
+        #auth-page {
+            background: #000000;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: black;
         }
-        .auth-box {
-            width: 320px;
-            border: 1px solid #444;
-            padding: 30px;
+        
+        .auth-container {
+            width: 360px;
+            border: 1px solid #3a3a3a;
+            padding: 32px 28px;
+            box-shadow: 0 0 15px rgba(70, 70, 70, 0.1);
         }
-        .auth-box h1 {
-            font-size: 20px;
-            margin-bottom: 25px;
-            color: #aaa;
-            font-weight: normal;
-            letter-spacing: 3px;
+        
+        .auth-header {
+            font-size: 22px;
+            letter-spacing: 4px;
+            margin-bottom: 32px;
+            color: #b0b0b0;
+            font-weight: 400;
+            text-transform: uppercase;
+            border-bottom: 1px solid #3a3a3a;
+            padding-bottom: 16px;
         }
-        .auth-box input {
+        
+        .auth-field {
             width: 100%;
-            background: black;
-            border: 1px solid #555;
-            color: white;
-            padding: 12px;
-            margin-bottom: 15px;
+            background: #000000;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 14px;
+            margin-bottom: 18px;
             outline: none;
+            font-size: 15px;
         }
-        .auth-buttons {
+        
+        .auth-field:focus {
+            border-color: #7a7a7a;
+        }
+        
+        .auth-actions {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            margin-top: 8px;
         }
-        .auth-buttons button {
+        
+        .auth-btn {
             flex: 1;
-            background: black;
-            border: 1px solid #777;
-            color: #ddd;
-            padding: 12px;
+            background: #000000;
+            border: 1px solid #4a4a4a;
+            color: #c0c0c0;
+            padding: 14px;
             cursor: pointer;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
-        .auth-buttons button:hover {
-            background: #111;
+        
+        .auth-btn:hover {
+            background: #0f0f0f;
+            border-color: #8a8a8a;
         }
-        #authMessage {
-            margin-top: 15px;
-            color: #ff8a8a;
+        
+        #auth-message {
+            margin-top: 20px;
+            color: #cc7a7a;
             font-size: 13px;
+            letter-spacing: 1px;
+            min-height: 20px;
         }
-        #mainPage {
+        
+        /* ---------- MAIN CHAT PAGE ---------- */
+        #main-page {
+            background: #000000;
             display: flex;
-            background: black;
         }
+        
+        /* ----- SIDEBAR ----- */
         .sidebar {
-            width: 250px;
-            border-right: 1px solid #333;
+            width: 260px;
+            border-right: 1px solid #2a2a2a;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 20px 16px;
+            background: #030303;
         }
-        .userinfo {
+        
+        .user-panel {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid #2a2a2a;
             margin-bottom: 20px;
         }
-        .avatar {
-            width: 45px;
-            height: 45px;
-            border: 1px solid #555;
+        
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border: 1px solid #444;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
-            color: #888;
-            background: black;
+            color: #7a7a7a;
+            background: #000000;
         }
-        .userdata {
+        
+        .user-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        #current-username {
+            font-size: 15px;
+            color: #eaeaea;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        
+        #user-badge {
+            font-size: 12px;
+            color: #9a9a9a;
+        }
+        
+        #logout-btn {
+            background: #000000;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+        
+        #logout-btn:hover {
+            background: #0a0a0a;
+            border-color: #777;
+        }
+        
+        .channel-list {
             flex: 1;
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
-        #currentUser {
-            font-size: 15px;
-            color: #fff;
-        }
-        #userBadge {
-            font-size: 12px;
-            color: #aaa;
-        }
-        #logoutBtn {
-            background: black;
-            border: 1px solid #555;
-            color: #aaa;
-            padding: 6px 10px;
-            cursor: pointer;
-        }
-        .channels {
-            flex: 1;
-        }
+        
         .channel {
-            padding: 12px;
-            margin-bottom: 5px;
+            padding: 12px 14px;
             border: 1px solid transparent;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 15px;
+            letter-spacing: 1.5px;
+            color: #a8a8a8;
         }
+        
         .channel.active {
-            border: 1px solid #777;
-            background: #0a0a0a;
+            border: 1px solid #5a5a5a;
+            background: #0c0c0c;
+            color: #f0f0f0;
         }
+        
         .channel:hover {
-            border: 1px solid #555;
+            border: 1px solid #4a4a4a;
+            background: #080808;
         }
-        .stats {
-            margin-top: 20px;
+        
+        .user-stats {
+            margin-top: 25px;
             padding-top: 20px;
-            border-top: 1px solid #333;
+            border-top: 1px solid #2a2a2a;
             font-size: 13px;
-            color: #888;
+            color: #8a8a8a;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
+        
+        /* ----- CHAT AREA ----- */
         .chat-area {
             flex: 1;
             display: flex;
             flex-direction: column;
+            background: #000000;
         }
+        
         .channel-header {
-            padding: 18px;
-            border-bottom: 1px solid #333;
+            padding: 18px 22px;
+            border-bottom: 1px solid #2a2a2a;
             font-size: 18px;
-            letter-spacing: 2px;
-            color: #ddd;
+            letter-spacing: 3px;
+            color: #c8c8c8;
+            text-transform: uppercase;
         }
-        .message-list {
+        
+        .message-container {
             flex: 1;
-            padding: 20px;
+            padding: 22px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
+        
         .message {
-            border: 1px solid #333;
-            padding: 15px;
+            border: 1px solid #2a2a2a;
+            padding: 16px;
             display: flex;
-            gap: 15px;
+            gap: 16px;
             align-items: flex-start;
+            background: #050505;
         }
+        
         .message-avatar {
-            width: 35px;
-            height: 35px;
-            border: 1px solid #555;
+            width: 38px;
+            height: 38px;
+            border: 1px solid #444;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
             color: #777;
             flex-shrink: 0;
-            background: black;
+            background: #000000;
         }
+        
         .message-content {
             flex: 1;
         }
+        
         .message-header {
             display: flex;
-            gap: 12px;
-            margin-bottom: 6px;
+            gap: 14px;
+            margin-bottom: 7px;
             font-size: 13px;
         }
+        
         .message-author {
-            color: #fff;
-            font-weight: bold;
+            color: #f0f0f0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
         }
+        
         .message-badge {
-            color: #aaa;
+            color: #9a9a9a;
         }
+        
         .message-text {
-            color: #ccc;
+            color: #c0c0c0;
             font-size: 14px;
             word-break: break-word;
+            line-height: 1.5;
         }
-        .message-input-area {
+        
+        .input-area {
             display: flex;
-            padding: 20px;
-            border-top: 1px solid #333;
-            gap: 12px;
+            padding: 20px 22px;
+            border-top: 1px solid #2a2a2a;
+            gap: 14px;
+            background: #030303;
         }
-        #messageText {
+        
+        #message-input {
             flex: 1;
-            background: black;
-            border: 1px solid #444;
-            color: white;
-            padding: 12px;
+            background: #000000;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 14px;
             resize: none;
-            height: 70px;
+            height: 75px;
             outline: none;
+            font-size: 15px;
         }
-        #sendMessageBtn {
-            width: 70px;
-            background: black;
-            border: 1px solid #666;
-            color: #ccc;
-            font-size: 20px;
+        
+        #message-input:focus {
+            border-color: #6a6a6a;
+        }
+        
+        #send-btn {
+            width: 75px;
+            background: #000000;
+            border: 1px solid #4a4a4a;
+            color: #c0c0c0;
+            font-size: 24px;
             cursor: pointer;
         }
-        #sendMessageBtn:hover {
-            background: #111;
+        
+        #send-btn:hover {
+            background: #0c0c0c;
+            border-color: #8a8a8a;
+        }
+        
+        /* ----- SCROLLBAR ----- */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
     <div id="app">
-        <!-- СТРАНИЦА АВТОРИЗАЦИИ -->
-        <div id="authPage" class="page active">
-            <div class="auth-box">
-                <h1>■ ЧЕРНЫЙ ЧАТ</h1>
-                <input type="text" id="loginUsername" placeholder="НИКНЕЙМ" autocomplete="off">
-                <input type="password" id="loginPassword" placeholder="ПАРОЛЬ" autocomplete="off">
-                <div class="auth-buttons">
-                    <button id="loginBtn">ВОЙТИ</button>
-                    <button id="registerBtn">СОЗДАТЬ</button>
+        <!-- AUTH PAGE - FULL SCREEN -->
+        <div id="auth-page" class="page active">
+            <div class="auth-container">
+                <div class="auth-header">[ TERMINAL ]</div>
+                <input type="text" id="login-username" class="auth-field" placeholder="USERNAME" autocomplete="off">
+                <input type="password" id="login-password" class="auth-field" placeholder="PASSWORD" autocomplete="off">
+                <div class="auth-actions">
+                    <button id="login-btn" class="auth-btn">LOGIN</button>
+                    <button id="register-btn" class="auth-btn">CREATE</button>
                 </div>
-                <div id="authMessage"></div>
+                <div id="auth-message"></div>
             </div>
         </div>
 
-        <!-- ОСНОВНАЯ СТРАНИЦА ЧАТА -->
-        <div id="mainPage" class="page">
+        <!-- MAIN CHAT PAGE - FULL SCREEN -->
+        <div id="main-page" class="page">
+            <!-- SIDEBAR -->
             <div class="sidebar">
-                <div class="userinfo">
-                    <div class="avatar">⬤</div>
-                    <div class="userdata">
-                        <span id="currentUser">-</span>
-                        <span id="userBadge">⛔</span>
+                <div class="user-panel">
+                    <div class="user-avatar">⬤</div>
+                    <div class="user-info">
+                        <span id="current-username">-</span>
+                        <span id="user-badge">⛔</span>
                     </div>
-                    <button id="logoutBtn">[X]</button>
+                    <button id="logout-btn">[X]</button>
                 </div>
-                <div class="channels">
+                
+                <div class="channel-list">
                     <div class="channel active" data-channel="world">🌍 WORLD</div>
                     <div class="channel" data-channel="russia">🇷🇺 RUSSIA</div>
                     <div class="channel" data-channel="usa">🇺🇸 USA</div>
                 </div>
-                <div class="stats">
-                    <div>СООБЩЕНИЙ: <span id="postCount">0</span></div>
-                    <div>ЗНАЧОК: <span id="badgeInfo">⛔</span></div>
+                
+                <div class="user-stats">
+                    <div>POSTS: <span id="post-count">0</span></div>
+                    <div>BADGE: <span id="badge-info">⛔</span></div>
                 </div>
             </div>
+            
+            <!-- CHAT AREA -->
             <div class="chat-area">
-                <div class="channel-header" id="currentChannelLabel">🌍 WORLD</div>
-                <div id="messageList" class="message-list"></div>
-                <div class="message-input-area">
-                    <textarea id="messageText" placeholder="ТЕКСТ СООБЩЕНИЯ..."></textarea>
-                    <button id="sendMessageBtn">→</button>
+                <div class="channel-header" id="current-channel-label">🌍 WORLD</div>
+                <div id="message-container" class="message-container"></div>
+                <div class="input-area">
+                    <textarea id="message-input" placeholder="MESSAGE..."></textarea>
+                    <button id="send-btn">→</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // ========== ДАННЫЕ ==========
-        let users = JSON.parse(localStorage.getItem('blackchat_users')) || [];
-        let currentUser = null;
-        let messages = JSON.parse(localStorage.getItem('blackchat_messages')) || {
-            world: [],
-            russia: [],
-            usa: []
-        };
-        let currentChannel = 'world';
-
-        // ========== DOM ЭЛЕМЕНТЫ ==========
-        const authPage = document.getElementById('authPage');
-        const mainPage = document.getElementById('mainPage');
-        const loginUsername = document.getElementById('loginUsername');
-        const loginPassword = document.getElementById('loginPassword');
-        const authMessage = document.getElementById('authMessage');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const currentUserSpan = document.getElementById('currentUser');
-        const userBadgeSpan = document.getElementById('userBadge');
-        const channels = document.querySelectorAll('.channel');
-        const currentChannelLabel = document.getElementById('currentChannelLabel');
-        const messageList = document.getElementById('messageList');
-        const messageText = document.getElementById('messageText');
-        const sendBtn = document.getElementById('sendMessageBtn');
-        const postCountSpan = document.getElementById('postCount');
-        const badgeInfoSpan = document.getElementById('badgeInfo');
-
-        // ========== ПРОВЕРКА АВТОРИЗАЦИИ ПРИ ЗАГРУЗКЕ ==========
-        function checkAuth() {
-            const savedUser = localStorage.getItem('blackchat_currentuser');
-            if (savedUser) {
-                const userData = JSON.parse(savedUser);
-                const user = users.find(u => u.username === userData.username);
+        (function(){
+            "use strict";
+            
+            // ========== SECURE STORAGE ==========
+            // All data stored locally, no external requests, no tracking, no analytics
+            
+            // ========== DATA ==========
+            let users = [];
+            try {
+                const stored = localStorage.getItem('bt_users');
+                if (stored) users = JSON.parse(stored);
+                if (!Array.isArray(users)) users = [];
+            } catch(e) {
+                users = [];
+            }
+            
+            let currentUser = null;
+            
+            let messages = {
+                world: [],
+                russia: [],
+                usa: []
+            };
+            try {
+                const stored = localStorage.getItem('bt_messages');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        messages.world = Array.isArray(parsed.world) ? parsed.world : [];
+                        messages.russia = Array.isArray(parsed.russia) ? parsed.russia : [];
+                        messages.usa = Array.isArray(parsed.usa) ? parsed.usa : [];
+                    }
+                }
+            } catch(e) {
+                messages = { world: [], russia: [], usa: [] };
+            }
+            
+            let currentChannel = 'world';
+            
+            // ========== DOM ==========
+            const authPage = document.getElementById('auth-page');
+            const mainPage = document.getElementById('main-page');
+            const loginUsername = document.getElementById('login-username');
+            const loginPassword = document.getElementById('login-password');
+            const authMessage = document.getElementById('auth-message');
+            const loginBtn = document.getElementById('login-btn');
+            const registerBtn = document.getElementById('register-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const currentUsernameSpan = document.getElementById('current-username');
+            const userBadgeSpan = document.getElementById('user-badge');
+            const channelElements = document.querySelectorAll('.channel');
+            const currentChannelLabel = document.getElementById('current-channel-label');
+            const messageContainer = document.getElementById('message-container');
+            const messageInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            const postCountSpan = document.getElementById('post-count');
+            const badgeInfoSpan = document.getElementById('badge-info');
+            
+            // ========== SECURITY FUNCTIONS ==========
+            // XSS Protection - strict sanitization
+            function sanitize(str) {
+                if (str === undefined || str === null) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;')
+                    .replace(/\//g, '&#x2F;');
+            }
+            
+            // No external requests, no tracking, no analytics, no fonts, no images
+            // Pure local execution
+            
+            // ========== HELPER FUNCTIONS ==========
+            function saveUsers() {
+                try {
+                    localStorage.setItem('bt_users', JSON.stringify(users));
+                } catch(e) {}
+            }
+            
+            function saveMessages() {
+                try {
+                    localStorage.setItem('bt_messages', JSON.stringify(messages));
+                } catch(e) {}
+            }
+            
+            function saveSession() {
+                if (currentUser) {
+                    try {
+                        localStorage.setItem('bt_session', JSON.stringify({
+                            username: currentUser.username
+                        }));
+                    } catch(e) {}
+                } else {
+                    localStorage.removeItem('bt_session');
+                }
+            }
+            
+            function getBadge(count) {
+                count = Number(count) || 0;
+                if (count >= 1000) return '[1000]';
+                if (count >= 100) return '[100]';
+                return '⛔';
+            }
+            
+            function updateUserStats() {
+                if (!currentUser) return;
+                const user = users.find(u => u.username === currentUser.username);
+                if (user) {
+                    const count = user.postCount || 0;
+                    postCountSpan.innerText = count;
+                    const badge = getBadge(count);
+                    userBadgeSpan.innerText = badge;
+                    badgeInfoSpan.innerText = badge;
+                }
+            }
+            
+            function renderMessages() {
+                const channelMsgs = messages[currentChannel] || [];
+                messageContainer.innerHTML = '';
+                
+                channelMsgs.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'message';
+                    
+                    const author = msg.author || 'deleted';
+                    const authorPosts = msg.authorPosts || 0;
+                    const text = msg.text || '';
+                    
+                    msgDiv.innerHTML = `
+                        <div class="message-avatar">⬤</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-author">${sanitize(author)}</span>
+                                <span class="message-badge">${sanitize(getBadge(authorPosts))}</span>
+                            </div>
+                            <div class="message-text">${sanitize(text)}</div>
+                        </div>
+                    `;
+                    messageContainer.appendChild(msgDiv);
+                });
+                
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+            
+            // ========== AUTH FUNCTIONS ==========
+            function login(username, password) {
+                if (!username || !password) {
+                    authMessage.innerText = '> ERROR: FIELDS REQUIRED';
+                    return;
+                }
+                
+                const user = users.find(u => u.username === username && u.password === password);
                 if (user) {
                     currentUser = user;
                     if (!currentUser.postCount) currentUser.postCount = 0;
+                    
                     authPage.classList.remove('active');
                     mainPage.classList.add('active');
-                    currentUserSpan.innerText = currentUser.username;
+                    currentUsernameSpan.innerText = currentUser.username;
+                    
+                    saveSession();
                     updateUserStats();
                     renderMessages();
-                    return true;
+                    authMessage.innerText = '';
+                    
+                    loginUsername.value = '';
+                    loginPassword.value = '';
+                } else {
+                    authMessage.innerText = '> ERROR: INVALID CREDENTIALS';
                 }
             }
-            // Если нет сохраненного пользователя, показываем страницу входа
-            authPage.classList.add('active');
-            mainPage.classList.remove('active');
-            return false;
-        }
-
-        // ========== ФУНКЦИИ ==========
-        function saveUsers() {
-            localStorage.setItem('blackchat_users', JSON.stringify(users));
-        }
-
-        function saveMessages() {
-            localStorage.setItem('blackchat_messages', JSON.stringify(messages));
-        }
-
-        function saveCurrentUser() {
-            if (currentUser) {
-                localStorage.setItem('blackchat_currentuser', JSON.stringify({
-                    username: currentUser.username
-                }));
-            }
-        }
-
-        function getBadge(count) {
-            if (count >= 1000) return '[1000]';
-            if (count >= 100) return '[100]';
-            return '⛔';
-        }
-
-        function updateUserStats() {
-            if (!currentUser) return;
-            const user = users.find(u => u.username === currentUser.username);
-            if (user) {
-                const count = user.postCount || 0;
-                postCountSpan.innerText = count;
-                const badge = getBadge(count);
-                userBadgeSpan.innerText = badge;
-                badgeInfoSpan.innerText = badge;
-            }
-        }
-
-        function escapeHTML(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        function renderMessages() {
-            const channelMessages = messages[currentChannel] || [];
-            messageList.innerHTML = '';
             
-            channelMessages.forEach(msg => {
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'message';
+            function register(username, password) {
+                if (!username || !password) {
+                    authMessage.innerText = '> ERROR: FIELDS REQUIRED';
+                    return;
+                }
                 
-                const author = msg.author || 'unknown';
-                const authorPosts = msg.authorPosts || 0;
-                const text = msg.text || '';
+                if (username.length < 2) {
+                    authMessage.innerText = '> ERROR: USERNAME TOO SHORT';
+                    return;
+                }
                 
-                msgDiv.innerHTML = `
-                    <div class="message-avatar">⬤</div>
-                    <div class="message-content">
-                        <div class="message-header">
-                            <span class="message-author">${escapeHTML(author)}</span>
-                            <span class="message-badge">${getBadge(authorPosts)}</span>
-                        </div>
-                        <div class="message-text">${escapeHTML(text)}</div>
-                    </div>
-                `;
-                messageList.appendChild(msgDiv);
-            });
-            
-            messageList.scrollTop = messageList.scrollHeight;
-        }
-
-        function login(username, password) {
-            const user = users.find(u => u.username === username && u.password === password);
-            if (user) {
-                currentUser = user;
-                if (!currentUser.postCount) currentUser.postCount = 0;
+                if (password.length < 3) {
+                    authMessage.innerText = '> ERROR: PASSWORD TOO SHORT';
+                    return;
+                }
                 
-                authPage.classList.remove('active');
-                mainPage.classList.add('active');
-                currentUserSpan.innerText = currentUser.username;
+                if (users.find(u => u.username === username)) {
+                    authMessage.innerText = '> ERROR: USERNAME EXISTS';
+                    return;
+                }
                 
-                saveCurrentUser();
-                updateUserStats();
-                renderMessages();
-                authMessage.innerText = '';
+                const newUser = {
+                    username: username,
+                    password: password,
+                    postCount: 0
+                };
+                users.push(newUser);
+                saveUsers();
+                authMessage.innerText = '> ACCOUNT CREATED. LOGIN NOW.';
                 
-                // Очищаем поля ввода
                 loginUsername.value = '';
                 loginPassword.value = '';
-            } else {
-                authMessage.innerText = '❌ Неверный логин или пароль';
-            }
-        }
-
-        function register(username, password) {
-            if (!username || !password) {
-                authMessage.innerText = '❌ Заполните все поля';
-                return;
-            }
-            if (users.find(u => u.username === username)) {
-                authMessage.innerText = '❌ Никнейм уже занят';
-                return;
             }
             
-            const newUser = {
-                username: username,
-                password: password,
-                postCount: 0
-            };
-            users.push(newUser);
-            saveUsers();
-            authMessage.innerText = '✅ Аккаунт создан, войдите';
+            function logout() {
+                currentUser = null;
+                localStorage.removeItem('bt_session');
+                mainPage.classList.remove('active');
+                authPage.classList.add('active');
+                loginUsername.value = '';
+                loginPassword.value = '';
+                authMessage.innerText = '';
+            }
             
-            // Очищаем поля
-            loginUsername.value = '';
-            loginPassword.value = '';
-        }
-
-        // ========== ОБРАБОТЧИКИ ==========
-        loginBtn.addEventListener('click', () => {
-            login(loginUsername.value.trim(), loginPassword.value.trim());
-        });
-
-        registerBtn.addEventListener('click', () => {
-            register(loginUsername.value.trim(), loginPassword.value.trim());
-        });
-
-        logoutBtn.addEventListener('click', () => {
-            currentUser = null;
-            localStorage.removeItem('blackchat_currentuser');
-            mainPage.classList.remove('active');
-            authPage.classList.add('active');
-            loginUsername.value = '';
-            loginPassword.value = '';
-        });
-
-        channels.forEach(ch => {
-            ch.addEventListener('click', function() {
-                channels.forEach(c => c.classList.remove('active'));
-                this.classList.add('active');
-                currentChannel = this.dataset.channel;
-                currentChannelLabel.innerText = this.innerText.trim();
+            function checkSession() {
+                try {
+                    const session = localStorage.getItem('bt_session');
+                    if (session) {
+                        const sessionData = JSON.parse(session);
+                        const user = users.find(u => u.username === sessionData.username);
+                        if (user) {
+                            currentUser = user;
+                            if (!currentUser.postCount) currentUser.postCount = 0;
+                            
+                            authPage.classList.remove('active');
+                            mainPage.classList.add('active');
+                            currentUsernameSpan.innerText = currentUser.username;
+                            
+                            updateUserStats();
+                            renderMessages();
+                            return true;
+                        }
+                    }
+                } catch(e) {}
+                
+                // No session or invalid - show auth page
+                authPage.classList.add('active');
+                mainPage.classList.remove('active');
+                return false;
+            }
+            
+            // ========== EVENT LISTENERS ==========
+            loginBtn.addEventListener('click', function() {
+                login(loginUsername.value.trim(), loginPassword.value.trim());
+            });
+            
+            registerBtn.addEventListener('click', function() {
+                register(loginUsername.value.trim(), loginPassword.value.trim());
+            });
+            
+            logoutBtn.addEventListener('click', logout);
+            
+            // Enter key in login fields
+            loginUsername.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login(loginUsername.value.trim(), loginPassword.value.trim());
+                }
+            });
+            
+            loginPassword.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    login(loginUsername.value.trim(), loginPassword.value.trim());
+                }
+            });
+            
+            // Channel switching
+            channelElements.forEach(ch => {
+                ch.addEventListener('click', function() {
+                    channelElements.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentChannel = this.dataset.channel;
+                    
+                    let label = this.innerText.trim();
+                    currentChannelLabel.innerText = label;
+                    renderMessages();
+                });
+            });
+            
+            // Send message
+            sendBtn.addEventListener('click', function() {
+                if (!currentUser) return;
+                
+                const text = messageInput.value.trim();
+                if (!text) return;
+                
+                const user = users.find(u => u.username === currentUser.username);
+                if (!user) return;
+                
+                user.postCount = (user.postCount || 0) + 1;
+                saveUsers();
+                
+                const msg = {
+                    author: currentUser.username,
+                    authorPosts: user.postCount,
+                    text: text,
+                    timestamp: Date.now()
+                };
+                
+                if (!messages[currentChannel]) {
+                    messages[currentChannel] = [];
+                }
+                
+                messages[currentChannel].push(msg);
+                saveMessages();
+                
+                messageInput.value = '';
+                updateUserStats();
                 renderMessages();
             });
-        });
-
-        sendBtn.addEventListener('click', () => {
-            if (!currentUser) return;
             
-            const text = messageText.value.trim();
-            if (!text) return;
+            // Enter to send (Shift+Enter for new line)
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendBtn.click();
+                }
+            });
             
-            const user = users.find(u => u.username === currentUser.username);
-            if (!user) return;
+            // ========== INIT ==========
+            window.addEventListener('load', function() {
+                checkSession();
+                
+                // Clear any sensitive data from memory on page unload
+                window.addEventListener('beforeunload', function() {
+                    // No sensitive data in memory except currentUser
+                    // Keep session for next visit
+                });
+            });
             
-            user.postCount = (user.postCount || 0) + 1;
-            saveUsers();
-            
-            const msg = {
-                author: currentUser.username,
-                authorPosts: user.postCount,
-                text: text,
-                timestamp: Date.now()
-            };
-            
-            if (!messages[currentChannel]) {
-                messages[currentChannel] = [];
-            }
-            
-            messages[currentChannel].push(msg);
-            saveMessages();
-            
-            messageText.value = '';
-            updateUserStats();
-            renderMessages();
-        });
-
-        messageText.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // Disable right click - optional security theater
+            document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
-                sendBtn.click();
-            }
-        });
-
-        // ========== ЗАПУСК ПРИ ЗАГРУЗКЕ ==========
-        window.onload = function() {
-            checkAuth();
-        };
+                return false;
+            });
+            
+            // No console messages, no logs, no analytics
+        })();
     </script>
 </body>
 </html>
