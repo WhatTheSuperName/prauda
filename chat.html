@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLACK TERMINAL · CHAT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        body {
+            background: #000000;
+            color: #c0c0c0;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #chat-app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            background: #000000;
+        }
+        
+        /* ----- SIDEBAR ----- */
+        .sidebar {
+            width: 280px;
+            border-right: 1px solid #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            padding: 22px 18px;
+            background: #030303;
+        }
+        
+        .user-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid #2a2a2a;
+            margin-bottom: 22px;
+        }
+        
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #7a7a7a;
+            background: #000000;
+        }
+        
+        .user-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        #current-username {
+            font-size: 16px;
+            color: #eaeaea;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+        }
+        
+        #user-badge {
+            font-size: 13px;
+            color: #9a9a9a;
+        }
+        
+        #logout-btn {
+            background: #000000;
+            border: 1px solid #444;
+            color: #aaa;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 15px;
+            letter-spacing: 2px;
+        }
+        
+        #logout-btn:hover {
+            background: #0a0a0a;
+            border-color: #777;
+        }
+        
+        .channel-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .channel {
+            padding: 14px 16px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            letter-spacing: 1.5px;
+            color: #a8a8a8;
+        }
+        
+        .channel.active {
+            border: 1px solid #5a5a5a;
+            background: #0c0c0c;
+            color: #f0f0f0;
+        }
+        
+        .channel:hover {
+            border: 1px solid #4a4a4a;
+            background: #080808;
+        }
+        
+        .user-stats {
+            margin-top: 25px;
+            padding-top: 22px;
+            border-top: 1px solid #2a2a2a;
+            font-size: 14px;
+            color: #8a8a8a;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        /* ----- CHAT AREA ----- */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #000000;
+        }
+        
+        .channel-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #2a2a2a;
+            font-size: 20px;
+            letter-spacing: 4px;
+            color: #c8c8c8;
+            text-transform: uppercase;
+        }
+        
+        .message-container {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .message {
+            border: 1px solid #2a2a2a;
+            padding: 18px;
+            display: flex;
+            gap: 18px;
+            align-items: flex-start;
+            background: #050505;
+        }
+        
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #777;
+            flex-shrink: 0;
+            background: #000000;
+        }
+        
+        .message-content {
+            flex: 1;
+        }
+        
+        .message-header {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .message-author {
+            color: #f0f0f0;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+        }
+        
+        .message-badge {
+            color: #9a9a9a;
+        }
+        
+        .message-text {
+            color: #c0c0c0;
+            font-size: 15px;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+        
+        .input-area {
+            display: flex;
+            padding: 22px 25px;
+            border-top: 1px solid #2a2a2a;
+            gap: 16px;
+            background: #030303;
+        }
+        
+        #message-input {
+            flex: 1;
+            background: #000000;
+            border: 1px solid #3a3a3a;
+            color: #e0e0e0;
+            padding: 16px;
+            resize: none;
+            height: 80px;
+            outline: none;
+            font-size: 16px;
+        }
+        
+        #message-input:focus {
+            border-color: #6a6a6a;
+        }
+        
+        #send-btn {
+            width: 80px;
+            background: #000000;
+            border: 1px solid #4a4a4a;
+            color: #c0c0c0;
+            font-size: 26px;
+            cursor: pointer;
+        }
+        
+        #send-btn:hover {
+            background: #0c0c0c;
+            border-color: #8a8a8a;
+        }
+        
+        /* ----- SCROLLBAR ----- */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #050505;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-app">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="user-panel">
+                <div class="user-avatar">⬤</div>
+                <div class="user-info">
+                    <span id="current-username">-</span>
+                    <span id="user-badge">⛔</span>
+                </div>
+                <button id="logout-btn">[X]</button>
+            </div>
+            
+            <div class="channel-list">
+                <div class="channel active" data-channel="world">🌍 WORLD</div>
+                <div class="channel" data-channel="russia">🇷🇺 RUSSIA</div>
+                <div class="channel" data-channel="usa">🇺🇸 USA</div>
+            </div>
+            
+            <div class="user-stats">
+                <div>POSTS: <span id="post-count">0</span></div>
+                <div>BADGE: <span id="badge-info">⛔</span></div>
+            </div>
+        </div>
+        
+        <!-- CHAT AREA -->
+        <div class="chat-area">
+            <div class="channel-header" id="current-channel-label">🌍 WORLD</div>
+            <div id="message-container" class="message-container"></div>
+            <div class="input-area">
+                <textarea id="message-input" placeholder="MESSAGE..."></textarea>
+                <button id="send-btn">→</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+            
+            // ========== CHECK AUTH ==========
+            let currentUser = null;
+            
+            try {
+                const session = localStorage.getItem('bt_session');
+                if (!session) {
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                const sessionData = JSON.parse(session);
+                const users = JSON.parse(localStorage.getItem('bt_users') || '[]');
+                currentUser = users.find(u => u.username === sessionData.username);
+                
+                if (!currentUser) {
+                    localStorage.removeItem('bt_session');
+                    window.location.href = 'index.html';
+                    return;
+                }
+            } catch(e) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // ========== DATA ==========
+            let messages = {
+                world: [],
+                russia: [],
+                usa: []
+            };
+            
+            try {
+                const stored = localStorage.getItem('bt_messages');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        messages.world = Array.isArray(parsed.world) ? parsed.world : [];
+                        messages.russia = Array.isArray(parsed.russia) ? parsed.russia : [];
+                        messages.usa = Array.isArray(parsed.usa) ? parsed.usa : [];
+                    }
+                }
+            } catch(e) {
+                messages = { world: [], russia: [], usa: [] };
+            }
+            
+            let currentChannel = 'world';
+            
+            // ========== DOM ==========
+            const currentUsernameSpan = document.getElementById('current-username');
+            const userBadgeSpan = document.getElementById('user-badge');
+            const channelElements = document.querySelectorAll('.channel');
+            const currentChannelLabel = document.getElementById('current-channel-label');
+            const messageContainer = document.getElementById('message-container');
+            const messageInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            const postCountSpan = document.getElementById('post-count');
+            const badgeInfoSpan = document.getElementById('badge-info');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            // ========== SECURITY ==========
+            function sanitize(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#x27;');
+            }
+            
+            // ========== FUNCTIONS ==========
+            function getBadge(count) {
+                count = Number(count) || 0;
+                if (count >= 1000) return '[1000]';
+                if (count >= 100) return '[100]';
+                return '⛔';
+            }
+            
+            function saveMessages() {
+                try {
+                    localStorage.setItem('bt_messages', JSON.stringify(messages));
+                } catch(e) {}
+            }
+            
+            function updateUserStats() {
+                if (!currentUser) return;
+                
+                const count = currentUser.postCount || 0;
+                postCountSpan.innerText = count;
+                const badge = getBadge(count);
+                userBadgeSpan.innerText = badge;
+                badgeInfoSpan.innerText = badge;
+            }
+            
+            function renderMessages() {
+                const channelMsgs = messages[currentChannel] || [];
+                messageContainer.innerHTML = '';
+                
+                channelMsgs.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'message';
+                    
+                    const author = msg.author || 'deleted';
+                    const authorPosts = msg.authorPosts || 0;
+                    const text = msg.text || '';
+                    
+                    msgDiv.innerHTML = `
+                        <div class="message-avatar">⬤</div>
+                        <div class="message-content">
+                            <div class="message-header">
+                                <span class="message-author">${sanitize(author)}</span>
+                                <span class="message-badge">${sanitize(getBadge(authorPosts))}</span>
+                            </div>
+                            <div class="message-text">${sanitize(text)}</div>
+                        </div>
+                    `;
+                    messageContainer.appendChild(msgDiv);
+                });
+                
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            }
+            
+            // ========== INIT ==========
+            currentUsernameSpan.innerText = currentUser.username;
+            updateUserStats();
+            renderMessages();
+            
+            // ========== EVENT LISTENERS ==========
+            logoutBtn.addEventListener('click', function() {
+                localStorage.removeItem('bt_session');
+                window.location.href = 'index.html';
+            });
+            
+            channelElements.forEach(ch => {
+                ch.addEventListener('click', function() {
+                    channelElements.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    currentChannel = this.dataset.channel;
+                    
+                    let label = this.innerText.trim();
+                    currentChannelLabel.innerText = label;
+                    renderMessages();
+                });
+            });
+            
+            sendBtn.addEventListener('click', function() {
+                if (!currentUser) return;
+                
+                const text = messageInput.value.trim();
+                if (!text) return;
+                
+                currentUser.postCount = (currentUser.postCount || 0) + 1;
+                
+                // Update user in localStorage
+                try {
+                    const users = JSON.parse(localStorage.getItem('bt_users') || '[]');
+                    const userIndex = users.findIndex(u => u.username === currentUser.username);
+                    if (userIndex !== -1) {
+                        users[userIndex].postCount = currentUser.postCount;
+                        localStorage.setItem('bt_users', JSON.stringify(users));
+                    }
+                } catch(e) {}
+                
+                const msg = {
+                    author: currentUser.username,
+                    authorPosts: currentUser.postCount,
+                    text: text,
+                    timestamp: Date.now()
+                };
+                
+                if (!messages[currentChannel]) {
+                    messages[currentChannel] = [];
+                }
+                
+                messages[currentChannel].push(msg);
+                saveMessages();
+                
+                messageInput.value = '';
+                updateUserStats();
+                renderMessages();
+            });
+            
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendBtn.click();
+                }
+            });
+            
+            // Disable right click
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+        })();
+    </script>
+</body>
+</html>
