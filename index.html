@@ -3,16 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Черный чат</title>
-    <link rel="stylesheet" href="style.css">
+    <title>BLACK CHAT</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        body {
+            background: black;
+            color: #ccc;
+        }
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .page {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+        .active {
+            display: block;
+        }
+        #authPage {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+        }
+        .auth-box {
+            width: 320px;
+            border: 1px solid #444;
+            padding: 30px;
+        }
+        .auth-box h1 {
+            font-size: 20px;
+            margin-bottom: 25px;
+            color: #aaa;
+            font-weight: normal;
+            letter-spacing: 3px;
+        }
+        .auth-box input {
+            width: 100%;
+            background: black;
+            border: 1px solid #555;
+            color: white;
+            padding: 12px;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .auth-buttons button {
+            flex: 1;
+            background: black;
+            border: 1px solid #777;
+            color: #ddd;
+            padding: 12px;
+            cursor: pointer;
+        }
+        .auth-buttons button:hover {
+            background: #111;
+        }
+        #authMessage {
+            margin-top: 15px;
+            color: #ff8a8a;
+            font-size: 13px;
+        }
+        #mainPage {
+            display: flex;
+            background: black;
+        }
+        .sidebar {
+            width: 250px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        .userinfo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border: 1px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #888;
+        }
+        .userdata {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #currentUser {
+            font-size: 15px;
+            color: #fff;
+        }
+        #userBadge {
+            font-size: 12px;
+            color: #aaa;
+        }
+        #logoutBtn {
+            background: black;
+            border: 1px solid #555;
+            color: #aaa;
+            padding: 6px 10px;
+            cursor: pointer;
+        }
+        .channels {
+            flex: 1;
+        }
+        .channel {
+            padding: 12px;
+            margin-bottom: 5px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .channel.active {
+            border: 1px solid #777;
+            background: #0a0a0a;
+        }
+        .channel:hover {
+            border: 1px solid #555;
+        }
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            font-size: 13px;
+            color: #888;
+        }
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .channel-header {
+            padding: 18px;
+            border-bottom: 1px solid #333;
+            font-size: 18px;
+            letter-spacing: 2px;
+            color: #ddd;
+        }
+        .message-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            border: 1px solid #333;
+            padding: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border: 1px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #777;
+            flex-shrink: 0;
+        }
+        .message-content {
+            flex: 1;
+        }
+        .message-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .message-author {
+            color: #fff;
+            font-weight: bold;
+        }
+        .message-badge {
+            color: #aaa;
+        }
+        .message-text {
+            color: #ccc;
+            font-size: 14px;
+            word-break: break-word;
+        }
+        .message-input-area {
+            display: flex;
+            padding: 20px;
+            border-top: 1px solid #333;
+            gap: 12px;
+        }
+        #messageText {
+            flex: 1;
+            background: black;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            resize: none;
+            height: 70px;
+            outline: none;
+        }
+        #sendMessageBtn {
+            width: 70px;
+            background: black;
+            border: 1px solid #666;
+            color: #ccc;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #sendMessageBtn:hover {
+            background: #111;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
-        <div id="auth" class="page active">
+        <!-- СТРАНИЦА АВТОРИЗАЦИИ -->
+        <div id="authPage" class="page active">
             <div class="auth-box">
-                <h1>▋ ВХОД / РЕГИСТРАЦИЯ</h1>
-                <input type="text" id="username" placeholder="никнейм">
-                <input type="password" id="password" placeholder="пароль">
+                <h1>■ ЧЕРНЫЙ ЧАТ</h1>
+                <input type="text" id="loginUsername" placeholder="НИКНЕЙМ">
+                <input type="password" id="loginPassword" placeholder="ПАРОЛЬ">
                 <div class="auth-buttons">
                     <button id="loginBtn">ВОЙТИ</button>
                     <button id="registerBtn">СОЗДАТЬ</button>
@@ -21,15 +255,16 @@
             </div>
         </div>
 
-        <div id="main" class="page">
+        <!-- ОСНОВНАЯ СТРАНИЦА ЧАТА -->
+        <div id="mainPage" class="page">
             <div class="sidebar">
                 <div class="userinfo">
                     <div class="avatar">⬤</div>
                     <div class="userdata">
-                        <span id="currentUser"></span>
-                        <span id="userBadge"></span>
+                        <span id="currentUser">-</span>
+                        <span id="userBadge">⛔</span>
                     </div>
-                    <button id="logoutBtn">[x]</button>
+                    <button id="logoutBtn">[X]</button>
                 </div>
                 <div class="channels">
                     <div class="channel active" data-channel="world">🌍 WORLD</div>
@@ -37,20 +272,221 @@
                     <div class="channel" data-channel="usa">🇺🇸 USA</div>
                 </div>
                 <div class="stats">
-                    <div>сообщений: <span id="postCount">0</span></div>
-                    <div>значок: <span id="badgeInfo">⛔</span></div>
+                    <div>СООБЩЕНИЙ: <span id="postCount">0</span></div>
+                    <div>ЗНАЧОК: <span id="badgeInfo">⛔</span></div>
                 </div>
             </div>
             <div class="chat-area">
-                <div class="channel-header" id="currentChannelLabel">WORLD</div>
+                <div class="channel-header" id="currentChannelLabel">🌍 WORLD</div>
                 <div id="messageList" class="message-list"></div>
                 <div class="message-input-area">
-                    <textarea id="messageText" placeholder="текст сообщения..."></textarea>
+                    <textarea id="messageText" placeholder="ТЕКСТ СООБЩЕНИЯ..."></textarea>
                     <button id="sendMessageBtn">→</button>
                 </div>
             </div>
         </div>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        // ========== ДАННЫЕ ==========
+        let users = JSON.parse(localStorage.getItem('blackchat_users')) || [];
+        let currentUser = null;
+        let messages = JSON.parse(localStorage.getItem('blackchat_messages')) || {
+            world: [],
+            russia: [],
+            usa: []
+        };
+        let currentChannel = 'world';
+
+        // ========== DOM ЭЛЕМЕНТЫ ==========
+        const authPage = document.getElementById('authPage');
+        const mainPage = document.getElementById('mainPage');
+        const loginUsername = document.getElementById('loginUsername');
+        const loginPassword = document.getElementById('loginPassword');
+        const authMessage = document.getElementById('authMessage');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const currentUserSpan = document.getElementById('currentUser');
+        const userBadgeSpan = document.getElementById('userBadge');
+        const channels = document.querySelectorAll('.channel');
+        const currentChannelLabel = document.getElementById('currentChannelLabel');
+        const messageList = document.getElementById('messageList');
+        const messageText = document.getElementById('messageText');
+        const sendBtn = document.getElementById('sendMessageBtn');
+        const postCountSpan = document.getElementById('postCount');
+        const badgeInfoSpan = document.getElementById('badgeInfo');
+
+        // ========== ФУНКЦИИ ==========
+        function saveUsers() {
+            localStorage.setItem('blackchat_users', JSON.stringify(users));
+        }
+
+        function saveMessages() {
+            localStorage.setItem('blackchat_messages', JSON.stringify(messages));
+        }
+
+        function getBadge(count) {
+            if (count >= 1000) return '[1000]';
+            if (count >= 100) return '[100]';
+            return '⛔';
+        }
+
+        function updateUserStats() {
+            if (!currentUser) return;
+            const user = users.find(u => u.username === currentUser.username);
+            if (user) {
+                const count = user.postCount || 0;
+                postCountSpan.innerText = count;
+                const badge = getBadge(count);
+                userBadgeSpan.innerText = badge;
+                badgeInfoSpan.innerText = badge;
+            }
+        }
+
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function renderMessages() {
+            const channelMessages = messages[currentChannel] || [];
+            messageList.innerHTML = '';
+            
+            channelMessages.forEach(msg => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message';
+                
+                const author = msg.author || 'unknown';
+                const authorPosts = msg.authorPosts || 0;
+                const text = msg.text || '';
+                
+                msgDiv.innerHTML = `
+                    <div class="message-avatar">⬤</div>
+                    <div class="message-content">
+                        <div class="message-header">
+                            <span class="message-author">${escapeHTML(author)}</span>
+                            <span class="message-badge">${getBadge(authorPosts)}</span>
+                        </div>
+                        <div class="message-text">${escapeHTML(text)}</div>
+                    </div>
+                `;
+                messageList.appendChild(msgDiv);
+            });
+            
+            messageList.scrollTop = messageList.scrollHeight;
+        }
+
+        function login(username, password) {
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                if (!currentUser.postCount) currentUser.postCount = 0;
+                
+                authPage.classList.remove('active');
+                mainPage.classList.add('active');
+                currentUserSpan.innerText = currentUser.username;
+                
+                updateUserStats();
+                renderMessages();
+                authMessage.innerText = '';
+            } else {
+                authMessage.innerText = '❌ Неверный логин или пароль';
+            }
+        }
+
+        function register(username, password) {
+            if (!username || !password) {
+                authMessage.innerText = '❌ Заполните все поля';
+                return;
+            }
+            if (users.find(u => u.username === username)) {
+                authMessage.innerText = '❌ Никнейм уже занят';
+                return;
+            }
+            
+            const newUser = {
+                username: username,
+                password: password,
+                postCount: 0
+            };
+            users.push(newUser);
+            saveUsers();
+            authMessage.innerText = '✅ Аккаунт создан, войдите';
+        }
+
+        // ========== ОБРАБОТЧИКИ ==========
+        loginBtn.addEventListener('click', () => {
+            login(loginUsername.value.trim(), loginPassword.value.trim());
+        });
+
+        registerBtn.addEventListener('click', () => {
+            register(loginUsername.value.trim(), loginPassword.value.trim());
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            currentUser = null;
+            mainPage.classList.remove('active');
+            authPage.classList.add('active');
+            loginUsername.value = '';
+            loginPassword.value = '';
+        });
+
+        channels.forEach(ch => {
+            ch.addEventListener('click', function() {
+                channels.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                currentChannel = this.dataset.channel;
+                currentChannelLabel.innerText = this.innerText.trim();
+                renderMessages();
+            });
+        });
+
+        sendBtn.addEventListener('click', () => {
+            if (!currentUser) return;
+            
+            const text = messageText.value.trim();
+            if (!text) return;
+            
+            const user = users.find(u => u.username === currentUser.username);
+            if (!user) return;
+            
+            user.postCount = (user.postCount || 0) + 1;
+            saveUsers();
+            
+            const msg = {
+                author: currentUser.username,
+                authorPosts: user.postCount,
+                text: text,
+                timestamp: Date.now()
+            };
+            
+            if (!messages[currentChannel]) {
+                messages[currentChannel] = [];
+            }
+            
+            messages[currentChannel].push(msg);
+            saveMessages();
+            
+            messageText.value = '';
+            updateUserStats();
+            renderMessages();
+        });
+
+        messageText.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        // ========== ВХОД ПОСЛЕДНИМ ПОЛЬЗОВАТЕЛЕМ ==========
+        window.onload = function() {
+            // ничего не делаем, ждем ручного входа
+        };
+    </script>
 </body>
 </html>
